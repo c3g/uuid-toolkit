@@ -1,0 +1,22 @@
+@"
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Environment files
+.env
+
+# Frontend
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# Old Git backup
+.git-backup/
+"@ | Out-File -Encoding utf8 .gitignore

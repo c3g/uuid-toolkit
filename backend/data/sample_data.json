@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "ABC-001",
+    "value": 10,
+    "status": "ok"
+  },
+  {
+    "value": 30,
+    "status": "no_id_field"
+  },
+  {
+    "uuid": "",
+    "value": 20,
+    "status": "missing_id"
+  }
+]
