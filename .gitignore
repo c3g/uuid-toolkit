@@ -20,3 +20,5 @@ dist/
 # Old Git backup
 .git-backup/
 "@ | Out-File -Encoding utf8 .gitignore
+
+frontend-vite/src/components_archive/
