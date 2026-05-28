@@ -230,6 +230,7 @@ def run_generation_pipeline(
                         "Existing identifier appears more than once in the uploaded file. "
                         f"Duplicate rows: {duplicate_rows}."
                     ),
+                    "metadata": record["metadata"],
                 })
 
                 updated_records.append(updated_row)
@@ -246,6 +247,7 @@ def run_generation_pipeline(
                 "valid": True,
                 "error": None,
                 "message": "Existing identifier was left unchanged.",
+                "metadata": record["metadata"],
             })
 
             updated_records.append(updated_row)
@@ -270,6 +272,7 @@ def run_generation_pipeline(
                     "Could not generate a unique identifier after "
                     f"{MAX_GENERATION_ATTEMPTS} conflict-resolution attempts."
                 ),
+                "metadata": record["metadata"],
             })
 
             updated_records.append(updated_row)
@@ -287,6 +290,7 @@ def run_generation_pipeline(
             "valid": True,
             "error": None,
             "message": "Missing identifier was generated.",
+            "metadata": record["metadata"],
         })
 
         updated_records.append(updated_row)
