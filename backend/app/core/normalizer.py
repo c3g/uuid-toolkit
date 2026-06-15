@@ -82,7 +82,7 @@ def normalize(parsed_data, id_name: str | None = None):
         else:
             raw_identifier = None
 
-        identifier = normalize_identifier_value(raw_identifier)
+        identifier,warnings = normalize_identifier_value(raw_identifier)
 
         # Metadata contains everything except the ID field.
         metadata = {}
@@ -97,6 +97,7 @@ def normalize(parsed_data, id_name: str | None = None):
             "identifier": identifier,
             "metadata": metadata,
             "original_record": row.copy(),
+            "warnings": warnings,
         }
 
         normalized_records.append(normalized_record)
@@ -130,19 +131,25 @@ def normalize_identifier_value(value):
         None    -> None
         "abc"   -> "abc"
     """
+    warnings=[]
 
     if value is None:
-        return None
+        return None,warnings
 
     if isinstance(value, str):
         stripped = value.strip()
 
         if stripped == "":
-            return None
+            if value != "":
+                warnings.append("Identifier contained only whitespace and was treated as missing.")
+            return None,warnings
+        
+        if stripped != value:
+            warnings.append("Surrounding whitespace was removed beforehand.")
 
-        return stripped
+        return stripped, warnings
 
-    return value
+    return value,warnings
 
 
 def resolve_id_field(rows: list[dict], id_name: str) -> str:

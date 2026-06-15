@@ -5,6 +5,7 @@ from .uuid_standard import UUIDStrategy
 from .cphi import CPHIStrategy
 from .cphi_modifiers import CPHI_Modifiers
 from .base import StrategyInterface
+from .custom import CustomStrategy
 
 
 _ALLOWED_CPHI_VARIANTS_BY_ENTITY_TYPE = {
@@ -49,6 +50,8 @@ def get_strategy(
 
         
         return get_cphi_strategy(config)
+    elif strategy_name == "CUSTOM":
+        return get_custom_strategy(config)
     #unkown strategy
     else:
         raise ValueError(
@@ -125,3 +128,30 @@ def get_cphi_strategy(config: dict) -> StrategyInterface:
 
 def _is_blank(value) -> bool:
     return value is None or value == "" or (isinstance(value, str) and value.strip() == "")
+
+def get_custom_strategy(config: dict) -> StrategyInterface:
+    config = config or {}
+
+    prefix_mode = config.get("prefix_mode", "random")
+    connector = config.get("connector", "")
+
+    suffix_type = config.get("suffix_type")
+    suffix_length = config.get("suffix_length")
+
+    if prefix_mode == "fixed":
+        return CustomStrategy(
+            prefix_mode=prefix_mode,
+            fixed_prefix=config.get("fixed_prefix"),
+            connector=connector,
+            suffix_type=suffix_type,
+            suffix_length=suffix_length,
+        )
+
+    return CustomStrategy(
+        prefix_mode=prefix_mode,
+        prefix_type=config.get("prefix_type"),
+        prefix_length=config.get("prefix_length"),
+        connector=connector,
+        suffix_type=suffix_type,
+        suffix_length=suffix_length,
+    )

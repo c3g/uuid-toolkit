@@ -1,0 +1,157 @@
+/*
+===
+Side bar styling
+===
+*/
+
+.sidebar {
+  width:240px;
+  background: linear-gradient(
+    180deg,
+    var(--sidebar-start)0%,
+    var(--sidebar-mid)55%,var(--sidebar-end)100%) ;
+  color: white;
+  padding:15px;
+  border-right: 1px solid#1E3A8F;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sidebar-brand{
+  display:flex;
+  align-items: center;
+  gap:10px;
+  margin-bottom: 32px;
+}
+.sidebar-brand-text{
+  display:flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.brand-small{
+  color:white;
+  font-size: 14px;
+  font-weight:700;
+  letter-spacing: 0.2px;
+}
+.brand-large{
+  color:white;
+  font-size:21px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.sidebar-favicon{
+  width:48px;
+  height:48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.sidebar nav {
+  display:flex;
+  flex-direction: column;
+  gap:10px;
+}
+.c3g-info {
+  margin: 22px 0 28px 0;
+  padding: 14px 16px;
+
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.c3g-info p {
+  margin: 0;
+  color: #e5eef9;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.sidebar button{
+  padding:10px 12px;
+  text-align: left;
+  border:none;
+  background: transparent;
+  color:#E5EEF9;
+  cursor:pointer;
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2 ease;
+}
+.sidebar button:hover{
+  background: #183b69;
+}
+.sidebar button.active{
+  background: rgba(255,255,255,0.18);
+  color: #E5EEF9;
+  font-weight:700;
+}
+.sidebar-bottom {
+  margin-top: 32px;
+}
+
+.contact-card {
+  padding: 16px;
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.contact-title {
+  margin: 0 0 6px 0;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.contact-text {
+  margin: 0 0 14px 0;
+  color: #dbeafe;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contact-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  padding: 10px 12px;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.contact-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.contact-button:active {
+  transform: translateY(1px);
+}
+
+.developer-credit{
+  margin: 8px 0 0 0;
+  text-align: center;
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  font-weight:500;
+}

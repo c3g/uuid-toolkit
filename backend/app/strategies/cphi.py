@@ -39,6 +39,7 @@ class CPHIStrategy(StrategyInterface):
         project_code = identifier[:CPHIStrategy.PROJECT_CODE_LENGTH]
         id_part = identifier[CPHIStrategy.PROJECT_CODE_LENGTH + 1:]
         dash = identifier[CPHIStrategy.PROJECT_CODE_LENGTH]
+        expected_project = config.get("project_code")
 
         if dash != "-":
             return {
@@ -58,6 +59,19 @@ class CPHIStrategy(StrategyInterface):
                 "error": "Invalid 6 digit ID code",
                 "message": f"ID part must be numeric, but got '{id_part}'."
             }
+        if expected_project is not None:
+            if not isinstance(expected_project,str):
+                return {
+                    "valid": False,
+                    "error": "Invalid config",
+                    "message": "Expected project_code in config to be a string."
+                }
+            if project_code != expected_project:
+                return {
+                    "valid" : False,
+                    "error" : "Project code mismatch",
+                    "message" : f"Identifier project code '{project_code}' does not match the expected project code '{expected_project}'."
+                }
         return {
             "valid" : True,
             "error": None,

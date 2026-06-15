@@ -19,7 +19,8 @@ async def generate_identifiers(
     strategy_name: str = Form(...),
     config_json: str = Form("{}"),
     id_name: str | None = Form(None),
-    output_id_field: str = Form("identifier"),
+    output_id_field: str | None = Form(None),
+    sheet_name: str | None = Form(None),
 ) -> dict:
     """
     Generate missing identifiers in an uploaded CSV/JSON file.
@@ -95,6 +96,7 @@ async def generate_identifiers(
             config=config,
             id_name=id_name,
             output_id_field=output_id_field,
+            sheet_name=sheet_name,
         )
 
     except ValueError as error:

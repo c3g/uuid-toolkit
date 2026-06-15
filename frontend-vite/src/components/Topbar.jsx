@@ -1,3 +1,4 @@
+import profileImage from "../assets/profile.svg"
 function Topbar(){
     return(
         <header className="topbar">
@@ -6,8 +7,9 @@ function Topbar(){
             </div>
             
             <div className="topbar-user">
-                <span>Alex Doe</span>
-                <button>Share</button>
+                <button className="profile-button">
+                    <img src={profileImage} alt="User Profile" />
+                </button>
             </div>
         </header>
     )

@@ -1,0 +1,162 @@
+/*
+=====
+Preview Panel
+=====
+*/
+
+.preview-panel{
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-light);
+  padding: 20px;
+  max-width: none;
+  margin-top: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+.preview-panel h2{
+  margin-top:0;
+}
+/*
+===
+Result table styling
+===
+*/
+.table-wrapper {
+  overflow: auto;
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  max-height: 500px;
+  width:100%;
+}
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+  background: white;
+}
+
+.result-table th,
+.result-table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.result-table th {
+  background: #f3f4f6;
+  font-weight: bold;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+.table-note{
+  margin: 16px 0 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+
+}
+
+.result-table tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.status-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size:12px;
+  font-weight:700;
+}
+.status-badge.valid {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.status-badge.invalid {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+/*
+===
+Result Grid Panels
+===
+*/
+.preview-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:16px;
+  margin-top: 16px;
+}
+
+/*
+==
+Shared Summary Card Layout for result summary
+==
+*/
+.summary-card{
+  border-radius:12px;
+  padding:16px;
+  min-height:90px;
+
+  display:flex;
+  align-items: center;
+  gap:14px;
+}
+.summary-icon{
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display:flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+.summary-icon img{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+}
+.summary-content strong{
+  display:block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+.summary-content p{
+  margin:0;
+  font-size:24px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+/*Inidividual summary card colors*/
+.total-rows{
+  background: #EFF6FF;
+  border: 2px solid #DBEAFE;
+}
+.valid-rows{
+  background: #FFFBEB;
+  border: 2px solid #FEF3C7;
+}
+.invalid-rows{
+  background: #FEF2F2;
+  border: 2px solid #FEE2E2;
+}
+.duplicated-rows{
+  background: #F5F3FF;
+  border: 2px solid #EDE9FE;
+}
+.clean-rows{
+  background-color: #E9FFE1;
+  border: 2px solid #D1FAE5;
+}

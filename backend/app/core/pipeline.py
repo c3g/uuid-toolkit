@@ -13,6 +13,7 @@ def run_validation_pipeline(
     strategy_name: str,
     config: dict,
     id_name: str | None = None,
+    sheet_name: str | None = None,
 ) -> dict:
     """
     Validate identifiers in an uploaded file.
@@ -25,7 +26,12 @@ def run_validation_pipeline(
     are marked invalid.
     """
 
-    parsed = parse_file(file_bytes, file_type)
+    parsed = parse_file(
+        file_bytes,
+        file_type,
+        id_name=id_name,
+        sheet_name=sheet_name,
+    )
     normalized = normalize(parsed, id_name=id_name)
 
     strategy = get_strategy(strategy_name, config)
@@ -41,6 +47,8 @@ def run_validation_pipeline(
         )
 
         result = enforce_validation_result(raw_result)
+
+        result["message"] = add_warnings_to_message(result["message"],record.get("warnings",[]),)
 
         row_result = {
             "row_index": record["row_index"],
@@ -69,16 +77,25 @@ def run_validation_pipeline(
 
             row_result["valid"] = False
             row_result["error"] = "Duplicate identifier"
-            row_result["message"] = (
+            duplicate_msg = (
                 "Identifier appears more than once in the uploaded file. "
                 f"Duplicate rows: {duplicate_rows}."
+            )
+            row_result["message"] = add_warnings_to_message(
+                duplicate_msg,
+                normalized[row_index].get("warnings",[]),
             )
 
     clean_records = []
 
     for record, row_result in zip(normalized, results):
         if row_result["valid"] is True:
-            clean_records.append(record["original_record"].copy())
+            clean_record=record["original_record"].copy()
+
+            if row_result["id_field"] is not None:
+                clean_record[row_result["id_field"]]=row_result["identifier"]
+            
+            clean_records.append(clean_record)
 
     valid_count = sum(1 for row in results if row["valid"] is True)
     invalid_count = len(results) - valid_count
@@ -105,6 +122,7 @@ def run_generation_pipeline(
     config: dict | None = None,
     id_name: str | None = None,
     output_id_field: str = "identifier",
+    sheet_name: str | None = None,
 ) -> dict:
     """
     Generate missing identifiers in an uploaded file.
@@ -119,7 +137,12 @@ def run_generation_pipeline(
 
     config = config or {}
 
-    parsed = parse_file(file_bytes, file_type)
+    parsed = parse_file(
+        file_bytes,
+        file_type,
+        id_name=id_name,
+        sheet_name=sheet_name,
+    )
     normalized_records = normalize(parsed, id_name=id_name)
 
     strategy = get_strategy(strategy_name, config)
@@ -141,6 +164,11 @@ def run_generation_pipeline(
 
         raw_result = strategy.validate(identifier, config)
         result = enforce_validation_result(raw_result)
+
+        result["message"] = add_warnings_to_message(
+            result["message"],
+            record.get("warnings",[]),
+        )
 
         existing_validation_results[row_index] = result
 
@@ -201,6 +229,8 @@ def run_generation_pipeline(
             if validation_result["valid"] is False:
                 error_count += 1
 
+                updated_row[target_id_field] = existing_identifier
+
                 results.append({
                     "row_index": row_index,
                     "id_field": target_id_field,
@@ -219,6 +249,17 @@ def run_generation_pipeline(
                 duplicate_count += 1
                 duplicate_rows = existing_identifier_to_rows[existing_identifier]
 
+                updated_row[target_id_field] = existing_identifier
+
+                duplicate_message = (
+                    "Existing identifier appears more than once in the uploaded file. "
+                    f"Duplicate rows: {duplicate_rows}."
+                )
+                duplicate_message = add_warnings_to_message(
+                    duplicate_message,
+                    record.get("warnings",[]),
+                )
+
                 results.append({
                     "row_index": row_index,
                     "id_field": target_id_field,
@@ -226,10 +267,7 @@ def run_generation_pipeline(
                     "identifier": existing_identifier,
                     "valid": False,
                     "error": "Duplicate identifier",
-                    "message": (
-                        "Existing identifier appears more than once in the uploaded file. "
-                        f"Duplicate rows: {duplicate_rows}."
-                    ),
+                    "message": duplicate_message,
                     "metadata": record["metadata"],
                 })
 
@@ -239,6 +277,13 @@ def run_generation_pipeline(
             # Existing ID is valid and not duplicated.
             skipped_count += 1
 
+            #Passing in the cleaned value instead of the old value
+            updated_row[target_id_field] = existing_identifier
+            message = add_warnings_to_message(
+                "Existing identifier was left unchanged",
+                record.get("warnings",[])
+            )
+
             results.append({
                 "row_index": row_index,
                 "id_field": target_id_field,
@@ -246,7 +291,7 @@ def run_generation_pipeline(
                 "identifier": existing_identifier,
                 "valid": True,
                 "error": None,
-                "message": "Existing identifier was left unchanged.",
+                "message": message,
                 "metadata": record["metadata"],
             })
 
@@ -423,3 +468,8 @@ def find_generated_conflict_rows(
                 conflict_rows.add(row_index)
 
     return conflict_rows
+
+def add_warnings_to_message(message: str, warnings: list[str])-> str:
+    if not warnings:
+        return message
+    return f"{message} Warning: {' '.join(warnings)}"

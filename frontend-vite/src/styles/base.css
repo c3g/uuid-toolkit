@@ -1,0 +1,30 @@
+*{
+  box-sizing: border-box;
+}
+:root {
+  --page-bg: #F4F8FF;
+  --card-bg: #FFFFFF;
+  --card-soft-bg: #F8FBFF;
+
+  --border-light: #DDE7F3;
+  --border-blue: #C7D9F4;
+
+  --text-main: #111827;
+  --text-muted: #64748B;
+
+  --primary-blue: #0F56D9;
+  --primary-blue-light: #EFF6FF;
+
+  --sidebar-start: #061B3A;
+  --sidebar-mid: #0A2A5A;
+  --sidebar-end: #0F3C7A;
+}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}

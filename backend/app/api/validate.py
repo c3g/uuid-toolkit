@@ -17,6 +17,7 @@ async def validate_identifiers(
     strategy_name: str = Form(...),
     config_json: str = Form("{}"),
     id_name: str | None = Form(None),
+    sheet_name: str | None = Form(None),
 ) -> dict:
     try:
         file_bytes = await file.read()
@@ -40,6 +41,7 @@ async def validate_identifiers(
             strategy_name=strategy_name,
             config=config,
             id_name=id_name,
+            sheet_name=sheet_name,
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))

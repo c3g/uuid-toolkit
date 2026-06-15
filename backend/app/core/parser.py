@@ -5,31 +5,57 @@ import io
 from openpyxl import load_workbook
 
 
-def parse_file(file_bytes: bytes, file_type: str):
+def parse_file(
+        file_bytes: bytes, 
+        file_type: str,
+        id_name:str | None,
+        sheet_name:str |None,
+        ):
     if file_type == 'json':
         return json.loads(file_bytes.decode('utf-8-sig'))
     elif file_type == 'csv':
         return list(csv.DictReader(io.StringIO(file_bytes.decode('utf-8-sig'))))
     elif file_type == 'xlsx':
-        return parse_xlsx(file_bytes)
+        return parse_xlsx(
+            file_bytes,
+            id_name=id_name,
+            sheet_name=sheet_name,
+            )
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
     
-def parse_xlsx(file_bytes: bytes) -> list[dict]:
+def parse_xlsx(
+        file_bytes:bytes,
+        id_name:str | None,
+        sheet_name:str |None,
+    ) -> list[dict]:
+    
     workbook = load_workbook(
         filename=io.BytesIO(file_bytes),
         data_only=True,
         read_only=True,
     )
+    if sheet_name:
+        if sheet_name not in workbook.sheetnames:
+            raise ValueError(
+                f"Sheet '{sheet_name}' was not found."
+                f"Available sheets: '{workbook.sheetnames}'"
+            )
+        worksheet = workbook[sheet_name]
 
-    worksheet = workbook.active
+    else:
+        worksheet = workbook.active
+    
 
     rows = list(worksheet.iter_rows(values_only=True))
 
     if not rows:
         raise ValueError("Excel file is empty.")
+    
+    header_index = detect_header_row(rows,id_name = id_name)
+    
+    headers = rows[header_index]
 
-    headers = rows[0]
 
     clean_headers = [
         str(header).strip() if header is not None else None
@@ -41,7 +67,7 @@ def parse_xlsx(file_bytes: bytes) -> list[dict]:
 
     records = []
 
-    for row in rows[1:]:
+    for row in rows[header_index+1:]:
         if row is None or all(value is None for value in row):
             continue
 
@@ -53,14 +79,51 @@ def parse_xlsx(file_bytes: bytes) -> list[dict]:
 
             record[header] = normalize_excel_cell(value)
 
-        records.append(record)
+        if any(value not in ("", None) for value in record.values()):
+            records.append(record)
 
     return records
 
 def normalize_excel_cell(value):
     if value == None:
         return ""
-    return str(value).strip()
+    return str(value)
+
+def detect_header_row(
+        rows: list[tuple],
+        id_name: str | None,
+) -> int:
+    target_id_name = id_name.strip().lower() if id_name else None
+
+    for index, row in enumerate(rows):
+        normalized_values = [
+            str(value).strip().lower()
+            for value in row
+            if value is not None and str(value).strip() != ""
+        ]
+
+        if not normalized_values:
+            continue
+
+        if target_id_name and target_id_name in normalized_values:
+            return index
+
+        # Helpful fallback for Genome Centre sample manifests
+        if (
+            "sample name" in normalized_values
+            and "sample type" in normalized_values
+            and "sample kind" in normalized_values
+        ):
+            return index
+
+        # Generic fallback for simpler spreadsheets
+        if any(
+            value in {"id", "identifier", "uuid", "uid"}
+            for value in normalized_values
+        ):
+            return index
+    #Default state of using the first row as the headers
+    return 0
 
 
 

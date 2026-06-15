@@ -1,0 +1,27 @@
+/*
+===
+Download Buttons
+===
+*/
+.download-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.download-actions button {
+  padding: 8px 12px;
+  border: 1px solid #dbe7f6;
+  background: white;
+  color: #0f56d9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.download-actions button:hover {
+  background: #eff6ff;
+  border-color: #0f56d9;
+}

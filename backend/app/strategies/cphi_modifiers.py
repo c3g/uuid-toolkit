@@ -19,6 +19,8 @@ class CPHI_Modifiers(StrategyInterface):
 
         variant = config.get("variant")
 
+        
+
         if variant is None:
             return {
                 "valid": False,
@@ -76,7 +78,6 @@ class CPHI_Modifiers(StrategyInterface):
                 "error": "Invalid modifier ID",
                 "message": "Modifier ID must be numeric."
             }
-
         return {
             "valid": True,
             "error": None,

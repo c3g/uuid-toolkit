@@ -1,0 +1,29 @@
+/*
+===
+Main Area for content
+===
+*/
+.main-area{
+  flex:1;
+  background: radial-gradient(circle at top left, rgba(15,86,217,0.08), transparent 280px),
+  var(--page-bg);
+  min-width: 0;
+}
+.content {
+  padding:24px;
+  width:100%;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+.page-header h1{
+  margin:0;
+  font-size:30px;
+  color: var(--text-main);
+}
+.page-header p{
+  margin: 8px 0 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
