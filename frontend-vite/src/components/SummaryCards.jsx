@@ -4,56 +4,136 @@ import invalidIcon from "../assets/icons/error.png";
 import duplicateIcon from "../assets/icons/duplicate.png";
 import cleanIcon from "../assets/icons/clean.png";
 
-function SummaryCards({summary}){
-    return(
-        <section className="preview-grid">
-            <div className="summary-card total-rows">
-                <div className="summary-icon">
-                <img src={totalIcon} alt="Total rows icon"/>
-                </div>
-                <div className="summary-content">
-                <strong>Total Rows:</strong>
-                <p>{summary.total_rows}</p>
-                </div>
+function SummaryCard({ className, icon, alt, label, value }) {
+    return (
+        <div className={`summary-card ${className}`}>
+            <div className="summary-icon">
+                <img src={icon} alt={alt} />
             </div>
-            <div className="summary-card valid-rows">
-                <div className="summary-icon">
-                <img src={validIcon} alt="Valid rows icon"/>
-                </div>
 
-                <div className="summary-content">
-                <strong>Valid Rows:</strong>
-                <p>{summary.valid_count}</p>
-                </div>
+            <div className="summary-content">
+                <strong>{label}</strong>
+                <p>{value ?? 0}</p>
             </div>
-            <div className="summary-card invalid-rows">
-                <div className="summary-icon">
-                <img src={invalidIcon} alt="Invalid rows icon"/>
-                </div>
-                <div className="summary-content">
-                <strong>Invalid Rows:</strong>
-                <p>{summary.invalid_count}</p>
-                </div>
-            </div>
-            <div className="summary-card duplicated-rows">
-                <div className="summary-icon">
-                <img src={duplicateIcon} alt="Duplicated rows icon"/>
-                </div>
-                <div className="summary-content">
-                <strong>Duplicated Rows:</strong>
-                <p>{summary.duplicate_count}</p>
-                </div>
-            </div>
-            <div className="summary-card clean-rows">
-                <div className="summary-icon">
-                <img src={cleanIcon} alt="Clean rows icon"/>
-                </div>
-                <div className="summary-content">
-                <strong>Clean Rows:</strong>
-                <p>{summary.clean_count}</p>
-                </div>
-            </div>
-        </section>
-    )
+        </div>
+    );
 }
+
+function SummaryCards({ summary, mode }) {
+    if (!summary) {
+        return null;
+    }
+
+    const isValidationMode = mode === "validate" || mode === "validation";
+    const isGenerationMode = mode === "generate" || mode === "generation";
+
+    return (
+        <section className="preview-grid">
+            <SummaryCard
+                className="total-rows"
+                icon={totalIcon}
+                alt="Total rows icon"
+                label="Total Rows:"
+                value={summary.total_rows}
+            />
+
+            {isValidationMode && (
+                <>
+                    <SummaryCard
+                        className="valid-rows"
+                        icon={validIcon}
+                        alt="Valid rows icon"
+                        label="Valid Rows:"
+                        value={summary.valid_count}
+                    />
+
+                    <SummaryCard
+                        className="invalid-rows"
+                        icon={invalidIcon}
+                        alt="Invalid rows icon"
+                        label="Invalid Rows:"
+                        value={summary.invalid_count}
+                    />
+
+                    <SummaryCard
+                        className="duplicated-rows"
+                        icon={duplicateIcon}
+                        alt="Duplicated rows icon"
+                        label="Duplicated Rows:"
+                        value={summary.duplicate_count}
+                    />
+
+                    <SummaryCard
+                        className="clean-rows"
+                        icon={cleanIcon}
+                        alt="Clean rows icon"
+                        label="Clean Rows:"
+                        value={summary.clean_count}
+                    />
+                </>
+            )}
+
+            {isGenerationMode && (
+                <>
+                    <SummaryCard
+                        className="generated-rows"
+                        icon={validIcon}
+                        alt="Generated rows icon"
+                        label="Generated Rows:"
+                        value={summary.generated_count}
+                    />
+
+                    <SummaryCard
+                        className="existing-rows"
+                        icon={totalIcon}
+                        alt="Existing IDs icon"
+                        label="Existing IDs:"
+                        value={summary.existing_count}
+                    />
+
+                    <SummaryCard
+                        className="missing-rows"
+                        icon={invalidIcon}
+                        alt="Missing IDs icon"
+                        label="Missing IDs:"
+                        value={summary.missing_count}
+                    />
+
+                    <SummaryCard
+                        className="valid-rows"
+                        icon={validIcon}
+                        alt="Existing valid IDs icon"
+                        label="Existing Valid IDs:"
+                        value={summary.existing_valid_count}
+                    />
+
+                    <SummaryCard
+                        className="invalid-rows"
+                        icon={invalidIcon}
+                        alt="Existing invalid IDs icon"
+                        label="Existing Invalid IDs:"
+                        value={summary.existing_invalid_count}
+                    />
+
+                    <SummaryCard
+                        className="duplicated-rows"
+                        icon={duplicateIcon}
+                        alt="Duplicated existing IDs icon"
+                        label="Duplicated Existing IDs:"
+                        value={summary.duplicate_count}
+                    />
+
+                    <SummaryCard
+                        className="clean-rows"
+                        icon={cleanIcon}
+                        alt="Clean rows icon"
+                        label="Clean Rows:"
+                        value={summary.clean_count}
+                    />
+                </>
+            )}
+        </section>
+    );
+}
+
 export default SummaryCards;

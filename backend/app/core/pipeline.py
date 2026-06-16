@@ -179,7 +179,8 @@ def run_generation_pipeline(
     duplicate_existing_row_indexes = find_duplicate_row_indexes(
         existing_identifier_to_rows
     )
-
+    existing_count = len (normalized_records) - len(missing_row_indexes)
+    missing_count = len(missing_row_indexes)
     # Existing IDs are reserved.
     # Generated IDs must not collide with any valid existing ID,
     # even if the existing ID itself is duplicated.
@@ -212,6 +213,9 @@ def run_generation_pipeline(
     error_count = 0
     generation_conflict_count = 0
 
+    existing_valid_count = 0
+    existing_invalid_count = 0
+
     # Pass 4:
     # Build final row-level output.
     for record in normalized_records:
@@ -228,6 +232,7 @@ def run_generation_pipeline(
             # Existing ID is structurally invalid.
             if validation_result["valid"] is False:
                 error_count += 1
+                existing_invalid_count += 1
 
                 updated_row[target_id_field] = existing_identifier
 
@@ -247,6 +252,7 @@ def run_generation_pipeline(
             # Existing ID is structurally valid but duplicated in the file.
             if row_index in duplicate_existing_row_indexes:
                 duplicate_count += 1
+                existing_invalid_count += 1
                 duplicate_rows = existing_identifier_to_rows[existing_identifier]
 
                 updated_row[target_id_field] = existing_identifier
@@ -276,6 +282,7 @@ def run_generation_pipeline(
 
             # Existing ID is valid and not duplicated.
             skipped_count += 1
+            existing_valid_count += 1
 
             #Passing in the cleaned value instead of the old value
             updated_row[target_id_field] = existing_identifier
@@ -345,7 +352,14 @@ def run_generation_pipeline(
         "mode": "generation",
         "summary": {
             "total_rows": len(updated_records),
+
+            "existing_count": existing_count,
+            "missing_count": missing_count,
             "generated_count": generated_count,
+
+            "existing_valid_count": existing_valid_count,
+            "existing_invalid_count": existing_invalid_count,
+            
             "skipped_count": skipped_count,
             "duplicate_count": duplicate_count,
             "generation_conflict_count": generation_conflict_count,

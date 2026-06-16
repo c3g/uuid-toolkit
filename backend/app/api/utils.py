@@ -177,7 +177,7 @@ def validate_cphi_config(config: dict[str, Any], mode: str) -> dict[str, Any]:
     normalized_config["variant"] = variant
 
     return normalized_config
-def validate_custom_config(config: dict) -> dict:
+def validate_custom_config(config: dict, mode:str) -> dict:
     config = config or {}
 
     allowed_prefix_modes = {"random", "fixed"}

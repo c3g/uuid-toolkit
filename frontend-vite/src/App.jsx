@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar from "./components/Topbar.jsx";
 import ConfigPanel from "./components/ConfigPanel.jsx";
@@ -7,7 +7,6 @@ import ResultPanel from "./components/ResultPanel.jsx";
 import ErrorPanel from "./components/ErrorPanel.jsx";
 import EmptyResultState from "./components/EmptyResultState.jsx";
 import "./App.css";
-
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const MAX_VISIBLE_ROWS = 20;
@@ -38,6 +37,30 @@ function App() {
   const [customConnector, setCustomConnector] = useState("-");
   const [customSuffixType, setCustomSuffixType] = useState("numeric");
   const [customSuffixLength, setCustomSuffixLength] = useState("6");
+
+  useEffect(()=> {
+    if(result){
+      setResult(null);
+      setError("");
+    }
+  }, [
+    mode,
+    entity_type,
+    strategy,
+    project_code,
+    variant,
+    idColumn,
+    outIdColumn,
+    uuidVersion,
+    sheetName,
+    customPrefixMode,
+    customPrefixLength,
+    customFixedPrefix,
+    customConnector,
+    customSuffixType,
+    customSuffixLength,
+  ]);
+
 
   function getFileType(filename){
     const extension = filename.split(".").pop().toLowerCase();

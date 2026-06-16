@@ -229,8 +229,8 @@ function ConfigPanel({
                                     setCustomPrefixMode(e.target.value); 
                                 }}
                             >
-                                <option value="random">random</option>
-                                <option value="fixed">fixed</option>
+                                <option value="random">Random</option>
+                                <option value="fixed">Fixed</option>
                             </select>
                         </label>
 

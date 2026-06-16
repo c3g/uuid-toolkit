@@ -25,6 +25,7 @@ function ResultPanel({
             
             <SummaryCards
                 summary={result.summary}
+                mode={result.mode || mode}
             />
             
 
