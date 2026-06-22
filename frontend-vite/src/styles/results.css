@@ -91,9 +91,14 @@ Result Grid Panels
 */
 .preview-grid{
   display:grid;
-  grid-template-columns:repeat(5,1fr);
   gap:16px;
   margin-top: 16px;
+}
+.validation-grid{
+  grid-template-columns:repeat(5,1fr);
+}
+.generation-grid{
+  grid-template-columns:repeat(4,1fr);
 }
 
 /*
@@ -139,24 +144,45 @@ Shared Summary Card Layout for result summary
   color: var(--text-main);
 }
 
-/*Inidividual summary card colors*/
-.total-rows{
-  background: #EFF6FF;
-  border: 2px solid #DBEAFE;
+/* Individual summary card colors */
+
+.total-rows {
+  background: #F0F7FF;
+  border: 2px solid #BFDFFF;
 }
-.valid-rows{
-  background: #FFFBEB;
-  border: 2px solid #FEF3C7;
+
+.generated-rows {
+  background: #F0FDFA;
+  border: 2px solid #99F6E4;
 }
-.invalid-rows{
-  background: #FEF2F2;
-  border: 2px solid #FEE2E2;
+
+.existing-rows {
+  background: #F5F7FF;
+  border: 2px solid #C7D2FE;
 }
-.duplicated-rows{
-  background: #F5F3FF;
-  border: 2px solid #EDE9FE;
+
+.missing-rows {
+  background: #FFF7ED;
+  border: 2px solid #FED7AA;
 }
-.clean-rows{
-  background-color: #E9FFE1;
-  border: 2px solid #D1FAE5;
+
+.valid-rows {
+  background: #F7FEE7;
+  border: 2px solid #D9F99D;
 }
+
+.invalid-rows {
+  background: #FFF1F2;
+  border: 2px solid #FECDD3;
+}
+
+.duplicated-rows {
+  background: #FAF5FF;
+  border: 2px solid #E9D5FF;
+}
+
+.clean-rows {
+  background: #F0FDF4;
+  border: 2px solid #BBF7D0;
+}
+

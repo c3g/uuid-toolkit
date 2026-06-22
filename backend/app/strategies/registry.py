@@ -24,7 +24,7 @@ def get_strategy(
     Parameters
     ----------
     strategy_name : str
-        Identifier family: 'UUID' or 'CPHI'
+        Identifier family: 'UUID' or 'CPHI' or 'CUSTOM'
 
     config : dict | None
         Optional configuration:

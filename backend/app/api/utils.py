@@ -182,7 +182,7 @@ def validate_custom_config(config: dict, mode:str) -> dict:
 
     allowed_prefix_modes = {"random", "fixed"}
     allowed_char_types = {"alphanumeric", "numeric", "letters"}
-    allowed_connectors = {"-", "_", ""}
+    allowed_connectors = {"-", "_", "", "+"}
 
     prefix_mode = config.get("prefix_mode", "random")
 

@@ -1,8 +1,47 @@
+"""
+Custom strategy for identifiers that implements the strategy interface.
+
+This module defines the validation and generation logic for custom identifiers.
+A user can customize three components of the ID, the prefix, connector, and the suffix.
+The identifiers would follow the following format:
+
+    <PREFIX><CONNECTOR><SUFFIX>
+
+    Examples:
+
+        C3G-1234567
+
+        DONUT+568
+
+        NRGI_909090
+
+The user can indicate the length of the prefix and suffix as well as the type.
+For the type they can choose between alphanumeric, numeric and letters.
+For connectors they can choose a dash -, underscore _ , or a plus +.
+
+Based on the user requirements, the IDs can be validated against the restrictions provided or be generated to follow the instructions.
+This file also validates and generates ID based on the already-normalized values in config passed from registry.py
+It would require prefix_mode, connector, suffix_type, and suffix_length.
+Depending on the prefix_mode it would require prefix_type, prefix_length, or fixed_prefix.
+
+Dependency notes:
+- ConfigPanel.jsx decides what custom options the user can choose from in the frontend
+- App.jsx buildConfig() must build the config dict with all the appropriate fields required
+- api/utils also validates the config and the fields within to ensure they are within acceptable ranges and types.
+- pipeline.py calls validate() and generate() through StrategyInterface so the return formats should stay consistent to ensure pipeline working properly.
+
+"""
 from .base import StrategyInterface
 import random
 import string
 
 class CustomStrategy(StrategyInterface):
+    """
+    Strategy for validating and generating custom user defined identifiers
+
+    This class implements the StrategyInterface used by the pipeline.
+    It only handles the custom format from the users and shouldn't be used for the CPHI project or other ones.
+    """
     ALLOWED_PREFIX_MODES = {
         "random",
         "fixed",

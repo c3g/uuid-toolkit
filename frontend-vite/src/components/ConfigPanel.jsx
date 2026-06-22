@@ -314,6 +314,7 @@ function ConfigPanel({
                             >
                                 <option value="-">Dash (-)</option>
                                 <option value="_">Underscore (_)</option>
+                                <option value="+">Plus (+)</option>
                                 <option value="">None</option>
                             </select>
                         </label>

@@ -1,10 +1,14 @@
 import totalIcon from "../assets/icons/total.png";
-import validIcon from "../assets/icons/valid.png";
+import validIcon from "../assets/icons/valid.svg";
 import invalidIcon from "../assets/icons/error.png";
 import duplicateIcon from "../assets/icons/duplicate.png";
 import cleanIcon from "../assets/icons/clean.png";
+import missingIcon from "../assets/icons/missing.svg";
+import existingIcon from "../assets/icons/existing.svg";
+import generatedIcon from "../assets/icons/generated.svg"
 
 function SummaryCard({ className, icon, alt, label, value }) {
+
     return (
         <div className={`summary-card ${className}`}>
             <div className="summary-icon">
@@ -27,8 +31,12 @@ function SummaryCards({ summary, mode }) {
     const isValidationMode = mode === "validate" || mode === "validation";
     const isGenerationMode = mode === "generate" || mode === "generation";
 
+    const gridClassName = isGenerationMode
+        ? "preview-grid generation-grid"
+        : "preview-grid validation-grid"
+
     return (
-        <section className="preview-grid">
+        <section className={gridClassName}>
             <SummaryCard
                 className="total-rows"
                 icon={totalIcon}
@@ -77,7 +85,7 @@ function SummaryCards({ summary, mode }) {
                 <>
                     <SummaryCard
                         className="generated-rows"
-                        icon={validIcon}
+                        icon={generatedIcon}
                         alt="Generated rows icon"
                         label="Generated Rows:"
                         value={summary.generated_count}
@@ -85,7 +93,7 @@ function SummaryCards({ summary, mode }) {
 
                     <SummaryCard
                         className="existing-rows"
-                        icon={totalIcon}
+                        icon={existingIcon}
                         alt="Existing IDs icon"
                         label="Existing IDs:"
                         value={summary.existing_count}
@@ -93,7 +101,7 @@ function SummaryCards({ summary, mode }) {
 
                     <SummaryCard
                         className="missing-rows"
-                        icon={invalidIcon}
+                        icon={missingIcon}
                         alt="Missing IDs icon"
                         label="Missing IDs:"
                         value={summary.missing_count}
