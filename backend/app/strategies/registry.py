@@ -1,3 +1,13 @@
+"""
+Registry of all available and functional strategies.
+
+This module defines a registry that helps choose the right strategy that all implement the same StrategyInterface.
+Based on the user input that is passed on from the front end to the api, to the pipeline and to the registry, the registry can choose which strategy to instantiate for generation or validation.
+The registry receives two inputs from the pipeline being the strategy name which defines which strategy to use and the config dict helps define if a wrapper strategy is necessary.
+
+The user 
+"""
+
 #The purpose of the registry is to record all the different types of identifiers
 #It will help with choosing the strategy for validation 
 
