@@ -47,15 +47,22 @@ function ConfigPanel({
         "PGEM",
         "G4PR",
     ];
+    const patientEnabledProject = ["NRGI", "INFA"];
+    const hasSelectedProject = project_code !="";
+    const showEntityType = strategy === "PCGL" && patientEnabledProject.includes(project_code);
+    const showPcglVariants = strategy === "PCGL" && hasSelectedProject;
     function getStrategyDescription(){
         if(strategy === "UUID"){
         return "Universally unique identifer. 128 bit number for identifying objects or information int he form of a 36 character alphanumerical string. "
         }
         if(strategy === "CPHI"){
-        return "CPHI identifier specifications that follow the following structure: XXXX-000000. XXXX: A four character string identifying the project. 000000: six digit ID not encoding any metdata"
+        return "CPHI identifier specifications that follow the following structure: XXXX-000000. XXXX: A four character string identifying the project. 000000: six digit ID not encoding any metdata. \n All IDs processed with this strategy will be treated as sample IDs"
+        }
+        if(strategy === "PCGL"){
+            return "PCGL identifier specification that is ready for submission into the PCGL. They should follow the structure of CPHI Identifiers of: XXXX-000000. XXXX: A four character string identifying the project. 000000: six digit ID not encoding any metdata. They can also include variants that depend on the entity type."
         }
         if(strategy === "CUSTOM"){
-            return "Create a custom formatted ID. Please select the prefix rules, connector, and suffix rules."
+            return "Create/Validate a custom formatted ID. Please select the prefix rules, connector, and suffix rules."
         }
         return "Choose a identifier strategy to see its description"
     }
@@ -93,6 +100,7 @@ function ConfigPanel({
                 <select value={strategy} onChange={(e)=> setStrategy(e.target.value)}>
                     <option value="UUID">UUID</option>
                     <option value="CPHI">CPHI</option>
+                    <option value="PCGL">PCGL</option>
                     <option value="CUSTOM">Custom</option>
                 </select>
                 </label>
@@ -118,28 +126,6 @@ function ConfigPanel({
 
                 {strategy == "CPHI" && (
                 <>
-                    <label>
-                        <span className="label-with-tooltip">
-                            CPHI Entity Type
-                            <span className="tooltip">
-                                ?
-                                <span className="tooltip-text">
-                                    Choose whether the identifier belongs to a patient or sample. This decides what variants are available.
-                                </span>
-                            </span>
-                        </span>
-
-                        <select value={entity_type} 
-                            onChange={(e) => {
-                                setEntity_type(e.target.value); 
-                                setVariant("");
-                            }}
-                        >
-                            <option value="">Select a type of CPHI ID</option>
-                            <option value="patient">Patient</option>
-                            <option value="sample">Sample</option>
-                        </select>
-                    </label>
                         
                     <label>
                         <span className="label-with-tooltip">
@@ -147,7 +133,7 @@ function ConfigPanel({
                             <span className="tooltip">
                                 ?
                                 <span className="tooltip-text">
-                                    The four character project prefix used at the start of the CPHI Identifiers regardless of patient or sample type.
+                                    The four character project prefix used at the start of the CPHI Identifiers regardless of patient or sample type. Some projects only work with sample IDs so please select carefully.
                                 </span>
                             </span>
                         </span>
@@ -170,48 +156,113 @@ function ConfigPanel({
                             <option value="G4PR">G4PR</option>
                         </select>
                     </label>
-                    {entity_type == "patient" && (
-                        <label>
-                            <span className="label-with-tooltip">
-                                Variant
-                                <span className="tooltip">
-                                    ?
-                                    <span className="tooltip-text">
-                                        Optional modifier added to the base CPHI ID. For patients, SPE creates a specimen patient ID.
-                                    </span>
-                                </span>
-                            </span>
-                            <select value={variant} onChange={(e) => setVariant(e.target.value)}>
-                            <option value="">None</option>
-                            <option value="SPE">SPE</option>
-
-                            </select>
-                        </label>
-                    )}
-                    {entity_type == "sample" && (
-                        <label>
-                            <span className="label-with-tooltip">
-                                Variant
-                                <span className="tooltip">
-                                    ?
-                                    <span className="tooltip-text">
-                                        Optional modifier added to the base CPHI ID. For samples EXP is for experiment IDs, LIB is for library IDs, RG is for read groud IDs, WRK is for workflow IDs, ANA is for Analysis IDs. Each variant ID should be unique and persistent within each variant type.
-                                    </span>
-                                </span>
-                            </span>
-                            <select value={variant} onChange={(e) => setVariant(e.target.value)}>
-                            <option value="">None</option>
-                            <option value="EXP">EXP</option>
-                            <option value="LIB">LIB</option>
-                            <option value="RG">RG</option>
-                            <option value="WRK">WRK</option>
-                            <option value="ANA">ANA</option>
-                            </select>
-                        </label>
-                    )}
                 </>
                 )}
-                {strategy == "CUSTOM" &&(
+                {strategy === "PCGL" &&(
+                    <>
+                        <label>
+                            <span className="label-with-tooltip">
+                                Project Code
+                                <span className="tooltip">
+                                    ?
+                                    <span className="tooltip-text">
+                                        The four character project prefix used at the start of the PCGL Identifiers regardless of patient or sample type. Some projects only work with sample IDs so please select carefully. Depending on selection, variants may be available as well.
+                                    </span>
+                                </span>
+                            </span>
+                            
+                            {/*These are the list of available project codes. 
+                            If new projects are added, add them as an option here */}
+                            <select 
+                                value={project_code} 
+                                onChange={(e) => {
+                                    setProject_code(e.target.value);
+                                    setEntity_type("sample");
+                                    setVariant("");
+                                }}
+                            >
+                                <option value="">Select a Project Code</option>
+                                <option value="NRGI">NRGI</option>
+                                <option value="C4RE">C4RE</option>
+                                <option value="GSCD">GSCD</option>
+                                <option value="GEPM">GEPM</option>
+                                <option value="LDPP">LDPP</option>
+                                <option value="EPCC">EPCC</option>
+                                <option value="INFA">INFA</option>
+                                <option value="MOSA">MOSA</option>
+                                <option value="CS4C">CS4C</option>
+                                <option value="PHNN">PHNN</option>
+                                <option value="PGEM">PGEM</option>
+                                <option value="G4PR">G4PR</option>
+                            </select>
+                        </label>
+                        {showEntityType &&(
+                            <label>
+                                <span className="label-with-tooltip">
+                                    PCGL Entity Type
+                                    <span className="tooltip">
+                                        ?
+                                        <span className="tooltip-text">
+                                            Choose whether the PCGL identifier belongs to a patient or sample. This decides what variants are available.
+                                        </span>
+                                    </span>
+                                </span>
+
+                                <select value={entity_type} 
+                                    onChange={(e) => {
+                                        setEntity_type(e.target.value); 
+                                        setVariant("");
+                                    }}
+                                >
+                                    <option value="sample">Sample</option>
+                                    <option value="patient">Patient</option>
+                                    
+                                </select>
+                            </label>
+                        )}
+                        {showPcglVariants && entity_type === "patient" &&(
+                            <label>
+                                <span className="label-with-tooltip">
+                                    Variant
+                                    <span className="tooltip">
+                                        ?
+                                        <span className="tooltip-text">
+                                            Patient PCGL variants. SPE creates a specimen-related patient identifier.
+                                        </span>
+                                    </span>
+                                </span>
+                                <select value={variant} onChange={(e) => setVariant(e.target.value)}>
+                                <option value="">None</option>
+                                <option value="SPE">SPE</option>
+
+                                </select>
+                            </label>
+                        )}
+                        {showEntityType && entity_type === "sample" && (
+                            <label>
+                                <span className="label-with-tooltip">
+                                    Variant
+                                    <span className="tooltip">
+                                        ?
+                                        <span className="tooltip-text">
+                                            Sample PCGL identifiers variants. For samples EXP is for experiment IDs, LIB is for library IDs, RG is for read groud IDs, WRK is for workflow IDs, ANA is for Analysis IDs. Each variant ID should be unique and persistent within each variant type.
+                                        </span>
+                                    </span>
+                                </span>
+                                <select value={variant} onChange={(e) => setVariant(e.target.value)}>
+                                <option value="">None</option>
+                                <option value="EXP">EXP</option>
+                                <option value="LIB">LIB</option>
+                                <option value="RG">RG</option>
+                                <option value="WRK">WRK</option>
+                                <option value="ANA">ANA</option>
+                                </select>
+                            </label>
+                        )}
+                    </>
+                    
+                )}
+                {strategy === "CUSTOM" &&(
                     <>
                         <label>
                             <span className="label-with-tooltip">
