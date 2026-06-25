@@ -6,7 +6,7 @@ from typing import Any
 
 UUID_GENERATION_VERSIONS = {4}  # only 4 for now, can be updated later
 
-CPHI_ALLOWED_VARIANTS_BY_TYPE = {
+CPHI_PCGL_ALLOWED_VARIANTS_BY_TYPE = {
     "patient": {"SPE"},
     "sample": {"EXP", "RG", "ANA", "LIB", "WRK"},
 }
@@ -60,8 +60,8 @@ def normalize_strategy_name(strategy_name: str) -> str:
     normalized = strategy_name.strip().upper()
 
     # Configure this later to add custom or other methods.
-    if normalized not in {"CPHI", "UUID", "CUSTOM",}:
-        raise ValueError("strategy_name must be either 'UUID', 'CPHI', or 'CUSTOM'.")
+    if normalized not in {"CPHI", "UUID", "PCGL","CUSTOM",}:
+        raise ValueError("strategy_name must be either 'UUID', 'CPHI', 'PCGL', or 'CUSTOM'.")
 
     return normalized
 
@@ -76,6 +76,8 @@ def validate_and_normalize_config(
 
     if strategy_name == "CPHI":
         return validate_cphi_config(config, mode)
+    if strategy_name == "PCGL":
+        return validate_pcgl_config(config, mode)
     if strategy_name == "CUSTOM":
         return validate_custom_config(config, mode)
 
@@ -137,9 +139,54 @@ def validate_cphi_config(config: dict[str, Any], mode: str) -> dict[str, Any]:
     entity_type = config.get("entity_type")
 
     if entity_type in (None, ""):
-        raise ValueError(
-            "entity_type is required for CPHI. Choose 'patient' or 'sample'."
-        )
+        entity_type = "sample" #Defaulting entity_type to sample
+
+    if not isinstance(entity_type, str):
+        raise ValueError("entity_type must be a string.")
+
+    entity_type = entity_type.strip().lower()
+
+    if entity_type not in {"patient", "sample"}:
+        raise ValueError("entity_type must be either 'patient' or 'sample'.")
+
+    normalized_config: dict[str, Any] = {
+        "project_code": project_code,
+        "entity_type": entity_type,
+    }
+
+    return normalized_config
+
+def validate_pcgl_config(config:dict, mode:str) -> dict:
+    """
+    Validate PCGL config.
+
+    Every PCGL ID must belong to an entity type:
+    - patient
+    - sample
+
+    A variant is optional.
+    """
+
+    if "project_code" not in config:
+        raise ValueError("Missing 'project_code' in config for PCGL.")
+
+    project_code = config["project_code"]
+
+    if not isinstance(project_code, str):
+        raise ValueError("project_code must be a string.")
+
+    project_code = project_code.strip().upper()
+
+    if len(project_code) != 4:
+        raise ValueError("project_code must be exactly 4 characters.")
+
+    if not project_code.isalnum():
+        raise ValueError("project_code must be alphanumeric.")
+
+    entity_type = config.get("entity_type")
+
+    if entity_type in (None, ""):
+        entity_type = "sample" #Defaulting all to sample type
 
     if not isinstance(entity_type, str):
         raise ValueError("entity_type must be a string.")
@@ -166,7 +213,7 @@ def validate_cphi_config(config: dict[str, Any], mode: str) -> dict[str, Any]:
 
     variant = variant.strip().upper()
 
-    allowed_variants = CPHI_ALLOWED_VARIANTS_BY_TYPE[entity_type]
+    allowed_variants = CPHI_PCGL_ALLOWED_VARIANTS_BY_TYPE[entity_type]
 
     if variant not in allowed_variants:
         raise ValueError(
@@ -177,6 +224,7 @@ def validate_cphi_config(config: dict[str, Any], mode: str) -> dict[str, Any]:
     normalized_config["variant"] = variant
 
     return normalized_config
+
 def validate_custom_config(config: dict, mode:str) -> dict:
     config = config or {}
 

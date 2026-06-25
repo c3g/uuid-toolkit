@@ -1,8 +1,8 @@
 """
-Base CPHI identifier strategy.
+Base PCGL identifier strategy.
 
-This module defines the validation and generation logic for the base CPHI identifiers.
-A base CPHI identifier has the following format:
+This module defines the validation and generation logic for the base PCGL identifiers.
+A base PCGL identifier has the following format:
 
         <PROJECT_CODE>-<NUMERIC_ID>
 
@@ -19,11 +19,11 @@ Rules that have to be enforced for this strategy:
 - The ID section must be 6 numeric digits
 - config["project_code"] must be provided, the identifier project code must match the provided project code
 
-This module only handles base CPHI identifiers. CPHI identifiers with varitans such as specimen (SPE) or experiments (EXP) IDs, are handled by cphi_modifiers.py.
+This module only handles base PCGL identifiers. PCGL identifiers with varitans such as specimen (SPE) or experiments (EXP) IDs, are handled by pcgl_modifiers.py.
 
 Dependency notes:
-- registry.py decides when to use CPHI strategy
-- apie/utils.py should validate the CPHI relevant config values before this strategy is used to ensure that all values are normalized.
+- registry.py decides when to use PCGL strategy
+- apie/utils.py should validate the PCGL relevant config values before this strategy is used to ensure that all values are normalized.
 - pipeline.py calls validate() and generate() through the shared strategy interface, so the return shape of validate() and generate() should stay consisten with other strategies.
 """
 
@@ -32,14 +32,14 @@ from .base import StrategyInterface
 import string
 import random
 
-class CPHIStrategy(StrategyInterface):
+class PCGLStrategy(StrategyInterface):
     """
-    Strategy for base CPHI identifier validation and generation.
+    Strategy for base PCGL identifier validation and generation.
 
     This class implements the shared StrategyInterface used by the pipeline.
-    It only handles base CPHI IDs, not variant-based CPHI modifier IDs.
+    It only handles base PCGL IDs, not variant-based PCGL modifier IDs.
 
-    Base CPHI format:
+    Base PCGL format:
 
         <PROJECT_CODE>-<NUMERIC_ID>
 
@@ -54,9 +54,9 @@ class CPHIStrategy(StrategyInterface):
     #A ID is valid if it starts with a 4 digit alphanumerical number followed by a dash then a 6 digit number
     def validate(self, identifier: str, config: dict|None = None) -> dict:
         """
-        Validate a base CPHI ID
+        Validate a base PCGL ID
 
-        A valid CPHI ID must follow the format:
+        A valid PCGL ID must follow the format:
 
             <PROJECT_CODE>-<NUMERIC_ID>
         Validation Rules:
@@ -76,7 +76,7 @@ class CPHIStrategy(StrategyInterface):
             the identifier value that is validated
         
         config:
-            Strategy configuration. For base CPHI, this would include "project_code" to enforce a specific expected project code.
+            Strategy configuration. For base PCGL, this would include "project_code" to enforce a specific expected project code.
         
         Returns
         -------
@@ -116,7 +116,7 @@ class CPHIStrategy(StrategyInterface):
             return {
                 "valid" : False,
                 "error": "Invalid character",
-                "message": "Base CPHI identifiers cannot contain underscores ('_')."
+                "message": "Base PCGL identifiers cannot contain underscores ('_')."
             }
         if len(identifier) != self.EXPECTED_LENGTH:
             return {
@@ -127,17 +127,17 @@ class CPHIStrategy(StrategyInterface):
         #--------
         #HAVE TO CHECK ID AGAINST DATABASE LATER ON
         #--------
-        project_code = identifier[:CPHIStrategy.PROJECT_CODE_LENGTH]
-        id_part = identifier[CPHIStrategy.PROJECT_CODE_LENGTH + 1:]
-        dash = identifier[CPHIStrategy.PROJECT_CODE_LENGTH]
-        config = config or {} #Just in case config was not passed over to prevent crashes.
+        project_code = identifier[:PCGLStrategy.PROJECT_CODE_LENGTH]
+        id_part = identifier[PCGLStrategy.PROJECT_CODE_LENGTH + 1:]
+        dash = identifier[PCGLStrategy.PROJECT_CODE_LENGTH]
+        config = config or {} #Just in case config wasn't passed on to prevent crashes.
         expected_project = config.get("project_code")
 
         if dash != "-":
             return {
                 "valid" : False,
                 "error": "Missing dash",
-                "message": f"Expected a dash ('-') at position {CPHIStrategy.PROJECT_CODE_LENGTH}, but it was not found."   
+                "message": f"Expected a dash ('-') at position {PCGLStrategy.PROJECT_CODE_LENGTH}, but it was not found."   
             }
         if not project_code.isalnum() or not project_code.isupper():
             return {
@@ -173,7 +173,7 @@ class CPHIStrategy(StrategyInterface):
 
     def generate(self, config: dict | None = None) -> str:
         """
-        Generate a new base CPHI identifier
+        Generate a new base PCGL identifier
 
         The generated identifier follows the following format:
 
@@ -196,7 +196,7 @@ class CPHIStrategy(StrategyInterface):
         Returns
         -------
         str
-            Newly generated base CPHI identifier
+            Newly generated base PCGL identifier
         
         Raises
         ------
@@ -211,7 +211,7 @@ class CPHIStrategy(StrategyInterface):
         The pipeline calls all generate functions with the same parameters and expects a str output from the generate function. Any changes should still maintain the consistency throughout all generate functions.
         """
         if config is None or "project_code" not in config:
-            raise ValueError("Missing config for CPHI generation. 'project_code' is required.")
+            raise ValueError("Missing config for PCGL generation. 'project_code' is required.")
 
         project_code = config.get("project_code")
 

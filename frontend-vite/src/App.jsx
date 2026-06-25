@@ -86,8 +86,14 @@ function App() {
     if (strategy == "CPHI"){
       return{
         project_code: project_code || null,
-        entity_type: entity_type || null,
-        variant: variant ||null,
+        entity_type: entity_type || "sample",
+      }
+    }
+    if (strategy === "PCGL"){
+      return{
+        project_code: project_code,
+        entity_type: entity_type || "sample",
+        variant: variant,
       }
     }
     if (strategy == "CUSTOM"){
@@ -111,6 +117,7 @@ function App() {
         prefix_length: customPrefixLength,
       }
     };
+    
     return{}
   }
 

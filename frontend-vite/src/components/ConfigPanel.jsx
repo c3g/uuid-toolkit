@@ -49,7 +49,8 @@ function ConfigPanel({
     ];
     const patientEnabledProject = ["NRGI", "INFA"];
     const hasSelectedProject = project_code !="";
-    const showEntityType = strategy === "PCGL" && patientEnabledProject.includes(project_code);
+    const showCphiEntityType = strategy === "CPHI" && patientEnabledProject.includes(project_code); /*This is so that we show the entity types for the CPHI project as well */
+    const showPcglEntityType = strategy === "PCGL" && patientEnabledProject.includes(project_code) ;
     const showPcglVariants = strategy === "PCGL" && hasSelectedProject;
     function getStrategyDescription(){
         if(strategy === "UUID"){
@@ -156,6 +157,30 @@ function ConfigPanel({
                             <option value="G4PR">G4PR</option>
                         </select>
                     </label>
+
+                    {showCphiEntityType && (
+                        <label>
+                            <span className="label-with-tooltip">
+                                CPHI Entity Type
+                                <span className="tooltip">
+                                    ?
+                                    <span className="tooltip-text">
+                                        Choose whether the CPHI identifier belongs to a patient or sample. 
+                                    </span>
+                                </span>
+                            </span>
+
+                            <select value={entity_type} 
+                                onChange={(e) => {
+                                    setEntity_type(e.target.value); 
+                                }}
+                            >
+                                <option value="sample">Sample</option>
+                                <option value="patient">Patient</option>
+                                
+                            </select>
+                        </label>
+                    )}
                 </>
                 )}
                 {strategy === "PCGL" &&(
@@ -196,7 +221,7 @@ function ConfigPanel({
                                 <option value="G4PR">G4PR</option>
                             </select>
                         </label>
-                        {showEntityType &&(
+                        {showPcglEntityType &&(
                             <label>
                                 <span className="label-with-tooltip">
                                     PCGL Entity Type

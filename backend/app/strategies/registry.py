@@ -16,9 +16,10 @@ from .cphi import CPHIStrategy
 from .cphi_modifiers import CPHI_Modifiers
 from .base import StrategyInterface
 from .custom import CustomStrategy
+from .pcgl import PCGLStrategy
+from .pcgl_modifiers import PCGL_Modifiers
 
-
-_ALLOWED_CPHI_VARIANTS_BY_ENTITY_TYPE = {
+_ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE = {
     "patient": {"SPE"},
     "sample": {"EXP", "RG", "ANA", "LIB", "WRK"},
 }
@@ -60,6 +61,10 @@ def get_strategy(
 
         
         return get_cphi_strategy(config)
+    #PCGL family
+    elif strategy_name == "PCGL":
+        return get_pcgl_strategy(config)
+    #Custom family
     elif strategy_name == "CUSTOM":
         return get_custom_strategy(config)
     #unkown strategy
@@ -77,18 +82,16 @@ def get_uuid_strategy(config:dict)->StrategyInterface:
     return UUIDStrategy()
 def get_cphi_strategy(config: dict) -> StrategyInterface:
     """
-    Choose either base CPHI or modified CPHI strategy.
+    Returns the base CPHI ID.
 
     CPHI IDs must always belong to either:
     - patient
     - sample
 
-    Variant is optional.
     """
 
     project_code = config.get("project_code")
     entity_type = config.get("entity_type")
-    variant = config.get("variant")
 
     if _is_blank(project_code):
         raise ValueError("Missing 'project_code' in config for CPHI strategy.")
@@ -107,37 +110,77 @@ def get_cphi_strategy(config: dict) -> StrategyInterface:
 
     entity_type = entity_type.strip().lower()
 
-    if entity_type not in _ALLOWED_CPHI_VARIANTS_BY_ENTITY_TYPE:
+    if entity_type not in _ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE:
         raise ValueError(
             f"Invalid CPHI entity_type '{entity_type}'. "
-            f"Allowed values: {sorted(_ALLOWED_CPHI_VARIANTS_BY_ENTITY_TYPE)}."
+            f"Allowed values: {sorted(_ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE)}."
+        )
+    
+    return CPHIStrategy()
+
+
+def _is_blank(value) -> bool:
+    return value is None or value == "" or (isinstance(value, str) and value.strip() == "")
+
+def get_pcgl_strategy(config:dict) -> StrategyInterface:
+    """
+    Choose either base PCGL or modified PCGL strategy.
+
+    PCGL IDs must always belong to either:
+    - patient
+    - sample
+
+    Variant is optional.
+    """
+
+    project_code = config.get("project_code")
+    entity_type = config.get("entity_type")
+    variant = config.get("variant")
+
+    if _is_blank(project_code):
+        raise ValueError("Missing 'project_code' in config for PCGL strategy.")
+
+    if not isinstance(project_code, str):
+        raise ValueError("'project_code' must be a string.")
+
+    if _is_blank(entity_type):
+        raise ValueError(
+            "Missing 'entity_type' in config for PCGL strategy. "
+            "Expected 'patient' or 'sample'."
         )
 
-    # No variant means base CPHI format:
+    if not isinstance(entity_type, str):
+        raise ValueError("'entity_type' must be a string.")
+
+    entity_type = entity_type.strip().lower()
+
+    if entity_type not in _ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE:
+        raise ValueError(
+            f"Invalid PCGL entity_type '{entity_type}'. "
+            f"Allowed values: {sorted(_ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE)}."
+        )
+
+    # No variant means base PCGL format:
     # NRGI-123456
     if _is_blank(variant):
-        return CPHIStrategy()
+        return PCGLStrategy()
 
     if not isinstance(variant, str):
         raise ValueError("'variant' must be a string.")
 
     variant = variant.strip().upper()
 
-    allowed_variants = _ALLOWED_CPHI_VARIANTS_BY_ENTITY_TYPE[entity_type]
+    allowed_variants = _ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE[entity_type]
 
     if variant not in allowed_variants:
         raise ValueError(
-            f"Invalid CPHI variant '{variant}' for entity_type '{entity_type}'. "
+            f"Invalid PCGL variant '{variant}' for entity_type '{entity_type}'. "
             f"Allowed values: {sorted(allowed_variants)}."
         )
 
-    # Variant exists, so use modified CPHI format:
+    # Variant exists, so use modified PCGL format:
     # NRGI-123456_EXP_0001
-    return CPHI_Modifiers()
-
-
-def _is_blank(value) -> bool:
-    return value is None or value == "" or (isinstance(value, str) and value.strip() == "")
+    return PCGL_Modifiers()
 
 def get_custom_strategy(config: dict) -> StrategyInterface:
     config = config or {}
