@@ -19,12 +19,13 @@ Rules that have to be enforced for this strategy:
 - The ID section must be 6 numeric digits
 - config["project_code"] must be provided, the identifier project code must match the provided project code
 
-This module only handles base PCGL identifiers. PCGL identifiers with varitans such as specimen (SPE) or experiments (EXP) IDs, are handled by pcgl_modifiers.py.
+This module only handles base PCGL identifiers. PCGL identifiers with variatns such as specimen (SPE) or experiments (EXP) IDs, are handled by pcgl_modifiers.py.
 
 Dependency notes:
 - registry.py decides when to use PCGL strategy
 - apie/utils.py should validate the PCGL relevant config values before this strategy is used to ensure that all values are normalized.
 - pipeline.py calls validate() and generate() through the shared strategy interface, so the return shape of validate() and generate() should stay consisten with other strategies.
+- ConfigPanel.jsx defaults the entity type to be sample whenever a project is chosen in the frontend
 """
 
 

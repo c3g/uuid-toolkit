@@ -13,24 +13,26 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 const MAX_VISIBLE_ROWS = 20;
 
 function App() {
-  const [mode, setMode]                 = useState("validate");
-  const [strategy, setStrategy]         = useState("CPHI");
-  const [file, setFile]                 = useState(null);
-  const [result, setResult]             = useState(null);
-  const [entity_type, setEntity_type]   = useState("");
-  const [project_code, setProject_code] = useState("");
-  const [variant, setVariant]           = useState("");
-  const [idColumn, setIdColumn]         = useState("identifier");
-  const [outIdColumn, setOutIdColumn]   = useState("")
-  const [uuidVersion, setUuidVersion]   = useState("4");
-  /* Adding and Error State */
-  const [error, setError]               = useState("");
-  const [loading, setLoading]           = useState(false);
+  /* Core app state */
+  const [mode, setMode] = useState("validate");
+  const [strategy, setStrategy] = useState("CPHI");
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
 
-  const outIdName = outIdColumn.trim()|| idColumn.trim() || "identifier";
+  /* CPHI / PCGL state */
+  const [entity_type, setEntity_type] = useState("");
+  const [project_code, setProject_code] = useState("");
+  const [variant, setVariant] = useState("");
+
+  /* Input / output state */
+  const [idColumn, setIdColumn] = useState("identifier");
+  const [outIdColumn, setOutIdColumn] = useState("");
   const [sheetName, setSheetName] = useState("");
 
-  /*Custom format states */
+  /* UUID state */
+  const [uuidVersion, setUuidVersion] = useState("4");
+
+  /* Custom format state */
   const [customPrefixMode, setCustomPrefixMode] = useState("random");
   const [customPrefixType, setCustomPrefixType] = useState("letters");
   const [customPrefixLength, setCustomPrefixLength] = useState("4");
@@ -39,32 +41,30 @@ function App() {
   const [customSuffixType, setCustomSuffixType] = useState("numeric");
   const [customSuffixLength, setCustomSuffixLength] = useState("6");
 
-  /*Popup States */
+  /* UI state */
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  /* Run confirmation popup state */
   const [showRunConfirmation, setShowRunConfirmation] = useState(false);
-  const [runConfimrationData, setRunConfirmationData] = useState(null);
+  const [runConfirmationData, setRunConfirmationData] = useState(null);
 
-  function shouldShowRunConfirmation(){
-    const normalizedEntityType = (entity_type||"sample").trim().toLocaleLowerCase();
+  /* Derived values */
+  const outIdName = outIdColumn.trim() || idColumn.trim() || "identifier";
 
-    const strategyUsesEntity = strategy === "CPHI"|| strategy === "PCGL";
+  const resultRows = result?.results || [];
+  const cleanRows = resultRows.filter((row) => row.valid === true);
+  const visible_rows = resultRows.slice(0, MAX_VISIBLE_ROWS);
 
-    return strategyUsesEntity && normalizedEntityType !== "sample";
-  }
+  const metadataKeys = Array.from(
+    new Set(
+      resultRows.flatMap((row) => Object.keys(row.metadata || {}))
+    )
+  );
 
-  function buildRunConfirmation(){
-    return{
-      mode: mode === "validate" ? "Validate" : "Generate",
-      strategy: strategy,
-      fileName: file.name || "No file selected",
-      config: buildConfig(),
-      inputIdColumn: idColumn||"identifier",
-      outputIdColumn: outIdName,
-      sheetName: sheetName.trim() || "Active Sheet",
-    };
-  }
-
-  useEffect(()=> {
-    if(result){
+  /* Reset old results when user changes configuration */
+  useEffect(() => {
+    if (result) {
       setResult(null);
       setError("");
     }
@@ -86,42 +86,49 @@ function App() {
     customSuffixLength,
   ]);
 
-
-  function getFileType(filename){
+  /* File helpers */
+  function getFileType(filename) {
     const extension = filename.split(".").pop().toLowerCase();
 
-    if(extension == "csv"){
+    if (extension == "csv") {
       return "csv";
     }
-    if(extension == "json"){
+
+    if (extension == "json") {
       return "json";
     }
-    if(extension == "xlsx"){
-      return "xlsx"
+
+    if (extension == "xlsx") {
+      return "xlsx";
     }
+
     return "";
   }
 
-  function buildConfig(){
-    if (strategy == "UUID"){
-      return{
+  /* Config helpers */
+  function buildConfig() {
+    if (strategy == "UUID") {
+      return {
         version: Number(uuidVersion),
       };
     }
-    if (strategy == "CPHI"){
-      return{
+
+    if (strategy == "CPHI") {
+      return {
         project_code: project_code || null,
         entity_type: entity_type || "sample",
-      }
+      };
     }
-    if (strategy === "PCGL"){
-      return{
+
+    if (strategy === "PCGL") {
+      return {
         project_code: project_code,
         entity_type: entity_type || "sample",
         variant: variant,
-      }
+      };
     }
-    if (strategy == "CUSTOM"){
+
+    if (strategy == "CUSTOM") {
       const baseConfig = {
         prefix_mode: customPrefixMode,
         connector: customConnector,
@@ -129,69 +136,102 @@ function App() {
         suffix_length: customSuffixLength,
       };
 
-      if (customPrefixMode == "fixed"){
+      if (customPrefixMode == "fixed") {
         return {
           ...baseConfig,
-          fixed_prefix:customFixedPrefix,
+          fixed_prefix: customFixedPrefix,
         };
-
       }
+
       return {
         ...baseConfig,
         prefix_type: customPrefixType,
         prefix_length: customPrefixLength,
-      }
-    };
-    
-    return{}
+      };
+    }
+
+    return {};
   }
 
-  function validateForm(){
-    if(!idColumn.trim()){
-      return "Please enter the ID column name."
-    }
-    if (!file){
-      return "Please upload a file."
-    }
-    const fileType = getFileType(file.name);
-    if (!fileType){
-      return "Unsupported file type, please choose a CSV, JSON, or a xlsx file."
+  function validateForm() {
+    if (!idColumn.trim()) {
+      return "Please enter the ID column name.";
     }
 
-    if (!strategy){
-      return "Please choose a UUID format/strategy."
+    if (!file) {
+      return "Please upload a file.";
     }
-    if(strategy=="CPHI"||strategy == "PCGL"){
-      if(!entity_type ||entity_type==""){
-        return "Please choose between patient ID or sample ID."
+
+    const fileType = getFileType(file.name);
+
+    if (!fileType) {
+      return "Unsupported file type, please choose a CSV, JSON, or a xlsx file.";
+    }
+
+    if (!strategy) {
+      return "Please choose a UUID format/strategy.";
+    }
+
+    if (strategy == "CPHI" || strategy == "PCGL") {
+      if (!entity_type || entity_type == "") {
+        return "Please choose between patient ID or sample ID.";
       }
-      if(!project_code){
-        return "Please choose a project code."
+
+      if (!project_code) {
+        return "Please choose a project code.";
       }
     }
+
     return "";
   }
-  
 
-  async function handleSubmit(event){
+  /* Run confirmation helpers */
+  function shouldShowRunConfirmation() {
+    const normalizedEntityType = (entity_type || "sample")
+      .trim()
+      .toLocaleLowerCase();
+
+    const strategyUsesEntity = strategy === "CPHI" || strategy === "PCGL";
+
+    return strategyUsesEntity && normalizedEntityType !== "sample";
+  }
+
+  function buildRunConfirmation() {
+    return {
+      mode: mode === "validate" ? "Validate" : "Generate",
+      strategy: strategy,
+      fileName: file.name || "No file selected",
+      config: buildConfig(),
+      inputIdColumn: idColumn || "identifier",
+      outputIdColumn: outIdName,
+      sheetName: sheetName.trim() || "Active Sheet",
+    };
+  }
+
+  /* Submit / run handlers */
+  async function handleSubmit(event) {
     event.preventDefault();
 
     setError("");
     setResult(null);
+
     const validationError = validateForm();
 
     if (validationError) {
-      setError(validationError)
+      setError(validationError);
       return;
     }
-    if (shouldShowRunConfirmation()){
+
+    if (shouldShowRunConfirmation()) {
       setRunConfirmationData(buildRunConfirmation());
       setShowRunConfirmation(true);
       return;
     }
+
     runRequest();
   }
-  async function runRequest(){
+
+  async function runRequest() {
     setError("");
     setResult(null);
 
@@ -201,9 +241,9 @@ function App() {
 
     formData.append("file", file);
     formData.append("strategy_name", strategy);
-    formData.append("config_json",JSON.stringify(buildConfig()));
-    formData.append("id_name", idColumn||"");
-    formData.append("output_id_field", outIdName||idColumn||"")
+    formData.append("config_json", JSON.stringify(buildConfig()));
+    formData.append("id_name", idColumn || "");
+    formData.append("output_id_field", outIdName || idColumn || "");
 
     if (sheetName.trim() !== "") {
       formData.append("sheet_name", sheetName.trim());
@@ -212,10 +252,10 @@ function App() {
     console.log({
       endpoint,
       file: file.name,
-      strategy_name:strategy,
+      strategy_name: strategy,
       config_json: buildConfig(),
       id_name: idColumn,
-    })
+    });
 
     try {
       setLoading(true);
@@ -223,40 +263,34 @@ function App() {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         body: formData,
-      })
+      });
+
       const data = await response.json();
 
-      if(!response.ok){
+      if (!response.ok) {
         throw new Error(data.detail || "Something went wrong.");
       }
+
       setResult(data);
-    }
-    catch (err) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }
-  function handleConfirmRun(){
+
+  function handleConfirmRun() {
     setShowRunConfirmation(false);
     setRunConfirmationData(null);
     runRequest();
   }
-  function handleCancelRun(){
+
+  function handleCancelRun() {
     setShowRunConfirmation(false);
     setRunConfirmationData(null);
   }
-  const resultRows = result?.results || []; 
-  const cleanRows = resultRows.filter((row)=>row.valid === true);
-  const visible_rows = resultRows.slice(0,MAX_VISIBLE_ROWS);
-  const metadataKeys = Array.from(
-    new Set(
-      resultRows.flatMap((row) => Object.keys(row.metadata || {}))
-    )
-  );
 
-  
-
+  /* Download helpers */
   function flattenRow(row) {
     return {
       row_index: row.row_index,
@@ -268,28 +302,34 @@ function App() {
       ...(row.metadata || {}),
     };
   }
-  function convertRowsToCsv(rows){
-    if (!rows || rows.length === 0){
+
+  function convertRowsToCsv(rows) {
+    if (!rows || rows.length === 0) {
       return "";
     }
-    const flattenedRows = rows.map(flattenRow)
 
-    const headers = Array.from(new Set(flattenedRows.flatMap((row)=> Object.keys(row))));
+    const flattenedRows = rows.map(flattenRow);
+
+    const headers = Array.from(
+      new Set(flattenedRows.flatMap((row) => Object.keys(row)))
+    );
 
     const csvLines = [
       headers.join(","),
-      ...flattenedRows.map((row) => headers.map((header)=> {
-        const value = row[header] ?? "";
-        const escapedValue = String(value).replaceAll('"','""');
-        return `"${escapedValue}"`
-      })
-      .join(",")
+      ...flattenedRows.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header] ?? "";
+            const escapedValue = String(value).replaceAll('"', '""');
+            return `"${escapedValue}"`;
+          })
+          .join(",")
       ),
-
     ];
-    return csvLines.join("\n");
 
+    return csvLines.join("\n");
   }
+
   function downloadCsv(rows, filename) {
     const csvString = convertRowsToCsv(rows);
 
@@ -311,6 +351,7 @@ function App() {
 
     URL.revokeObjectURL(url);
   }
+
   function downloadAllRows() {
     downloadCsv(resultRows, "all_results.csv");
   }
@@ -319,8 +360,7 @@ function App() {
     downloadCsv(cleanRows, "clean_rows.csv");
   }
 
-
-  return(
+  return (
     <div className="app-layout">
       <Sidebar />
 
@@ -331,13 +371,12 @@ function App() {
           <div className="page-header">
             <h1>Validate / Generate IDs</h1>
             <p>
-              Upload a CSV, JSON, or XLSX file to validate or generate unique identifiers for your datasets.
+              Upload a CSV, JSON, or XLSX file to validate or generate unique
+              identifiers for your datasets.
             </p>
           </div>
-          
 
           <form className="toolkit-form" onSubmit={handleSubmit}>
-
             <ConfigPanel
               mode={mode}
               setMode={setMode}
@@ -357,7 +396,6 @@ function App() {
               setUuidVersion={setUuidVersion}
               sheetName={sheetName}
               setSheetName={setSheetName}
-
               customPrefixMode={customPrefixMode}
               setCustomPrefixMode={setCustomPrefixMode}
               customPrefixType={customPrefixType}
@@ -375,14 +413,13 @@ function App() {
             />
 
             <UploadPanel
-            file={file}
-            setFile={setFile}
-            loading={loading}
+              file={file}
+              setFile={setFile}
+              loading={loading}
             />
           </form>
 
-          <ErrorPanel message={error} onClose={() => setError("")}/>
-          
+          <ErrorPanel message={error} onClose={() => setError("")} />
 
           {result ? (
             <ResultPanel
@@ -396,20 +433,21 @@ function App() {
               downloadAllRows={downloadAllRows}
               downloadCleanRows={downloadCleanRows}
             />
-          ): (
-            <EmptyResultState/>
+          ) : (
+            <EmptyResultState />
           )}
         </main>
       </div>
+
       <RunConfirmationModal
         isOpen={showRunConfirmation}
-        data={runConfimrationData}
+        data={runConfirmationData}
         onConfirm={handleConfirmRun}
         onCancel={handleCancelRun}
         loading={loading}
       />
     </div>
-  )
-
+  );
 }
+
 export default App;

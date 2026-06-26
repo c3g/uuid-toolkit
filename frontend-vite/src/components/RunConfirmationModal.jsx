@@ -19,12 +19,14 @@ function RunConfirmationModal({
                 aria-modal="true"
                 onClick={(event)=> event.stopPropagation()}
             >
-                <h2>Confirm Non-Sample Run</h2>
+                <div className="modal-intro-card">
+                    <h2>Confirm Non-Sample Run</h2>
 
-                <p className="modal-warning-text">
-                    You selected an entity sample type that is not a sample. Please review your settings and confirm that the entity type you chose is correct. 
-                    If you are unsure about which to choose please review the question icon next to the entity type or use the contact us button.
-                </p>
+                    <p className="modal-warning-text">
+                        You selected an entity sample type that is not a sample. Please review your settings and confirm that the entity type you chose is correct. 
+                        If you are unsure about which to choose please review the question icon next to the entity type or use the contact us button.
+                    </p>
+                </div>
 
                 <div className="modal-section">
                     <h3> Run Settings</h3>

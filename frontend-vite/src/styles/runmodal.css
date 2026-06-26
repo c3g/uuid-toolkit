@@ -11,61 +11,80 @@
 
 .run-confirmation-modal {
   width: min(560px, 100%);
-  max-height: 90vh;
+  max-height: calc(100vh - 48px);
   overflow-y: auto;
   background: #ffffff;
   border-radius: 18px;
-  padding: 24px;
+  padding: 22px;
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+}
+
+/* Compact intro card */
+.modal-intro-card {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
 }
 
 .run-confirmation-modal h2 {
   margin: 0 0 8px;
   font-size: 22px;
+  line-height: 1.2;
   color: #0f172a;
 }
 
 .modal-warning-text {
   margin: 0;
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.45;
+  font-size: 14px;
 }
 
+/* Compact dashboard-style cards */
 .modal-section {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: 12px;
+  padding: 14px 18px;
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
 }
 
 .modal-section h3 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 15px;
+  font-weight: 700;
   color: #0f172a;
 }
 
 .confirmation-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
   gap: 16px;
-  padding: 8px 0;
+  padding: 5px 0;
   font-size: 14px;
 }
 
 .confirmation-row span {
   color: #64748b;
+  font-weight: 500;
 }
 
 .confirmation-row strong {
   color: #0f172a;
   text-align: right;
+  font-weight: 700;
   word-break: break-word;
 }
 
+/* Buttons */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .modal-cancel-button,
@@ -75,6 +94,7 @@
   padding: 10px 16px;
   font-weight: 700;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .modal-cancel-button {
@@ -85,6 +105,14 @@
 .modal-confirm-button {
   background: #0f172a;
   color: #ffffff;
+}
+
+.modal-cancel-button:hover {
+  background: #e2e8f0;
+}
+
+.modal-confirm-button:hover {
+  background: #111827;
 }
 
 .modal-cancel-button:disabled,

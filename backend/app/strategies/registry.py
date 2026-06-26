@@ -35,7 +35,7 @@ def get_strategy(
     Parameters
     ----------
     strategy_name : str
-        Identifier family: 'UUID' or 'CPHI' or 'CUSTOM'
+        Identifier family: 'UUID','CPHI', 'PCGL', or 'CUSTOM'
 
     config : dict | None
         Optional configuration:
@@ -45,6 +45,21 @@ def get_strategy(
             {
                 "project_code": "NRGI",   # optional for validation
                 "variant": "EXP"          # optional
+            }
+        - PCGL:
+            {
+                "project_code": "NRGI",
+                "entity_type: "sample",
+                "variant" : None
+            }
+        -CUSTOM:
+            {
+                "prefix_mode": "random",
+                "connector": "-",
+                "suffix_type": "numeric"
+                "suffix_length": "4"
+                "prefix_type": "letters
+                :prefix_length": "4"
             }
     """
     config = config or {}
@@ -74,6 +89,9 @@ def get_strategy(
         )
     
 def get_uuid_strategy(config:dict)->StrategyInterface:
+    """
+    Returns the instantiated UUID strategy responsible for validaiton and generation.
+    """
     if "version" not in config:
         raise ValueError("Missing verion in config file.")
     version = config["version"]
@@ -183,6 +201,9 @@ def get_pcgl_strategy(config:dict) -> StrategyInterface:
     return PCGL_Modifiers()
 
 def get_custom_strategy(config: dict) -> StrategyInterface:
+    """
+    Instantiates the strategy responsible for custom identifiers.
+    """
     config = config or {}
 
     prefix_mode = config.get("prefix_mode", "random")
