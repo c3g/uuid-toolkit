@@ -25,6 +25,7 @@ Dependency notes:
 - registry.py decides when to use CPHI strategy
 - apie/utils.py should validate the CPHI relevant config values before this strategy is used to ensure that all values are normalized.
 - pipeline.py calls validate() and generate() through the shared strategy interface, so the return shape of validate() and generate() should stay consisten with other strategies.
+- The frontend specifically ConfigPanel.jsx defaults the entity type to sample for CPHI as well.
 """
 
 

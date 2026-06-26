@@ -6,6 +6,7 @@ import UploadPanel from "./components/UploadPanel.jsx";
 import ResultPanel from "./components/ResultPanel.jsx";
 import ErrorPanel from "./components/ErrorPanel.jsx";
 import EmptyResultState from "./components/EmptyResultState.jsx";
+import RunConfirmationModal from "./components/RunConfirmationModal.jsx";
 import "./App.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -37,6 +38,30 @@ function App() {
   const [customConnector, setCustomConnector] = useState("-");
   const [customSuffixType, setCustomSuffixType] = useState("numeric");
   const [customSuffixLength, setCustomSuffixLength] = useState("6");
+
+  /*Popup States */
+  const [showRunConfirmation, setShowRunConfirmation] = useState(false);
+  const [runConfimrationData, setRunConfirmationData] = useState(null);
+
+  function shouldShowRunConfirmation(){
+    const normalizedEntityType = (entity_type||"sample").trim().toLocaleLowerCase();
+
+    const strategyUsesEntity = strategy === "CPHI"|| strategy === "PCGL";
+
+    return strategyUsesEntity && normalizedEntityType !== "sample";
+  }
+
+  function buildRunConfirmation(){
+    return{
+      mode: mode === "validate" ? "Validate" : "Generate",
+      strategy: strategy,
+      fileName: file.name || "No file selected",
+      config: buildConfig(),
+      inputIdColumn: idColumn||"identifier",
+      outputIdColumn: outIdName,
+      sheetName: sheetName.trim() || "Active Sheet",
+    };
+  }
 
   useEffect(()=> {
     if(result){
@@ -136,7 +161,7 @@ function App() {
     if (!strategy){
       return "Please choose a UUID format/strategy."
     }
-    if(strategy=="CPHI"){
+    if(strategy=="CPHI"||strategy == "PCGL"){
       if(!entity_type ||entity_type==""){
         return "Please choose between patient ID or sample ID."
       }
@@ -152,13 +177,23 @@ function App() {
     event.preventDefault();
 
     setError("");
-    setResult("");
+    setResult(null);
     const validationError = validateForm();
 
     if (validationError) {
       setError(validationError)
       return;
     }
+    if (shouldShowRunConfirmation()){
+      setRunConfirmationData(buildRunConfirmation());
+      setShowRunConfirmation(true);
+      return;
+    }
+    runRequest();
+  }
+  async function runRequest(){
+    setError("");
+    setResult(null);
 
     const endpoint = mode === "validate" ? "/api/validate" : "/api/generate";
 
@@ -201,19 +236,15 @@ function App() {
     } finally {
       setLoading(false);
     }
-
-    /*const previewData = {
-      endpoint: mode === "validate" ? "/api/validate" : "/api/generate",
-      formDataFields:{
-        file: file ? file.name : null,
-        file_type: file ? getFileType(file.name) :null,
-        strategy_name: strategy,
-        id_field: idColumn,
-        config: buildConfig(),
-      },
-
-    };
-    setResult(JSON.stringify(previewData, null, 2))*/
+  }
+  function handleConfirmRun(){
+    setShowRunConfirmation(false);
+    setRunConfirmationData(null);
+    runRequest();
+  }
+  function handleCancelRun(){
+    setShowRunConfirmation(false);
+    setRunConfirmationData(null);
   }
   const resultRows = result?.results || []; 
   const cleanRows = resultRows.filter((row)=>row.valid === true);
@@ -370,6 +401,13 @@ function App() {
           )}
         </main>
       </div>
+      <RunConfirmationModal
+        isOpen={showRunConfirmation}
+        data={runConfimrationData}
+        onConfirm={handleConfirmRun}
+        onCancel={handleCancelRun}
+        loading={loading}
+      />
     </div>
   )
 

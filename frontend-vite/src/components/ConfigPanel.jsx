@@ -141,7 +141,12 @@ function ConfigPanel({
                         
                         {/*These are the list of available project codes. 
                         If new projects are added, add them as an option here */}
-                        <select value={project_code} onChange={(e) => setProject_code(e.target.value)}>
+                        <select value={project_code} 
+                                    onChange={(e) => {
+                                        setProject_code(e.target.value)
+                                        setEntity_type("sample"); 
+                                    }}
+                                >
                             <option value="">Select a Project Code</option>
                             <option value="NRGI">NRGI</option>
                             <option value="C4RE">C4RE</option>
