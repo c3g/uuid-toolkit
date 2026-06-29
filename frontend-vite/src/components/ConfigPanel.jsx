@@ -268,7 +268,7 @@ function ConfigPanel({
                                 </select>
                             </label>
                         )}
-                        {showEntityType && entity_type === "sample" && (
+                        {showPcglEntityType && entity_type === "sample" && (
                             <label>
                                 <span className="label-with-tooltip">
                                     Variant
