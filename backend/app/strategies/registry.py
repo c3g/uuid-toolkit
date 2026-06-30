@@ -154,6 +154,7 @@ def get_pcgl_strategy(config:dict) -> StrategyInterface:
     project_code = config.get("project_code")
     entity_type = config.get("entity_type")
     variant = config.get("variant")
+    variants = config.get("variants")
 
     if _is_blank(project_code):
         raise ValueError("Missing 'project_code' in config for PCGL strategy.")
@@ -177,6 +178,27 @@ def get_pcgl_strategy(config:dict) -> StrategyInterface:
             f"Invalid PCGL entity_type '{entity_type}'. "
             f"Allowed values: {sorted(_ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE)}."
         )
+    
+    # Plural variants means derived generation:
+    # NRGI-123456 -> NRGI-123456_EXP_0001, etc.
+    if isinstance(variants, list) and len(variants) > 0:
+        allowed_variants = _ALLOWED_CPHI_PCGL_VARIANTS_BY_ENTITY_TYPE[entity_type]
+
+        for selected_variant in variants:
+            if not isinstance(selected_variant, str):
+                raise ValueError("Each PCGL variant must be a string.")
+
+            selected_variant = selected_variant.strip().upper()
+
+            if selected_variant not in allowed_variants:
+                raise ValueError(
+                    f"Invalid PCGL variant '{selected_variant}' for "
+                    f"entity_type '{entity_type}'. "
+                    f"Allowed values: {sorted(allowed_variants)}."
+                )
+
+        return PCGL_Modifiers()
+
 
     # No variant means base PCGL format:
     # NRGI-123456

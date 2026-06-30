@@ -200,6 +200,41 @@ def validate_pcgl_config(config:dict, mode:str) -> dict:
         "project_code": project_code,
         "entity_type": entity_type,
     }
+    
+    # Generate mode uses plural variants.
+    if mode == "generate":
+        variants = config.get("variants", [])
+
+        if variants in (None, ""):
+            variants = []
+
+        if not isinstance(variants, list):
+            raise ValueError("'variants' must be a list for PCGL generation.")
+
+        normalized_variants = []
+        allowed_variants = CPHI_PCGL_ALLOWED_VARIANTS_BY_TYPE[entity_type]
+
+        for variant in variants:
+            if not isinstance(variant, str):
+                raise ValueError("Each PCGL variant must be a string.")
+
+            variant = variant.strip().upper()
+
+            if variant == "":
+                continue
+
+            if variant not in allowed_variants:
+                raise ValueError(
+                    f"Variant '{variant}' is not allowed for entity_type "
+                    f"'{entity_type}'. Allowed variants: {sorted(allowed_variants)}."
+                )
+
+            normalized_variants.append(variant)
+
+        if normalized_variants:
+            normalized_config["variants"] = normalized_variants
+
+        return normalized_config
 
     variant = config.get("variant")
 

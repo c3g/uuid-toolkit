@@ -193,3 +193,44 @@ Strategy Description styling
   line-height: 1.4;
   color: #374151;
 }
+/*
+===
+Checkbox styling
+===
+*/
+.checkbox-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  padding: 8px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.checkbox-option input {
+  width: auto;
+  margin: 0;
+}
+
+.field-help {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}

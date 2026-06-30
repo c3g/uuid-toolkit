@@ -8,6 +8,7 @@ function ResultPanel({
     resultRows,
     visible_rows,
     metadataKeys,
+    generatedIdentifierKeys,
     outIdName,
     maxVisibleRows,
     downloadAllRows,
@@ -26,6 +27,7 @@ function ResultPanel({
             <SummaryCards
                 summary={result.summary}
                 mode={result.mode || mode}
+                generation_mode = {result.generation_mode}
             />
             
 
@@ -34,6 +36,7 @@ function ResultPanel({
                 resultRows={resultRows}
                 visible_rows={visible_rows}
                 metadataKeys={metadataKeys}
+                generatedIdentifierKeys={generatedIdentifierKeys}
                 outIdName={outIdName}
                 maxVisibleRows={maxVisibleRows}
             />

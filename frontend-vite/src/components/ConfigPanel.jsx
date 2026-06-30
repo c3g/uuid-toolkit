@@ -9,6 +9,8 @@ function ConfigPanel({
     setProject_code,
     variant,
     setVariant,
+    variants,
+    setVariants,
     idColumn,
     setIdColumn,
     outIdColumn,
@@ -52,6 +54,29 @@ function ConfigPanel({
     const showCphiEntityType = strategy === "CPHI" && patientEnabledProject.includes(project_code); /*This is so that we show the entity types for the CPHI project as well */
     const showPcglEntityType = strategy === "PCGL" && patientEnabledProject.includes(project_code) ;
     const showPcglVariants = strategy === "PCGL" && hasSelectedProject;
+
+    const pcglVariantOptionsByEntityType = {
+        patient: ["SPE"],
+        sample: ["EXP", "LIB", "RG", "WRK", "ANA"],
+    };
+
+    const selectedEntityType = entity_type || "sample";
+
+    const availablePcglVariants =
+    pcglVariantOptionsByEntityType[selectedEntityType] || [];
+
+    const isPcglValidateMode = strategy === "PCGL" && mode === "validate";
+    const isPcglGenerateMode = strategy === "PCGL" && mode === "generate";
+
+    function togglePcglVariant(selectedVariant) {
+    if (variants.includes(selectedVariant)) {
+        setVariants(variants.filter((currentVariant) => currentVariant !== selectedVariant));
+        return;
+    }
+
+    setVariants([...variants, selectedVariant]);
+    }
+
     function getStrategyDescription(){
         if(strategy === "UUID"){
         return "Universally unique identifer. 128 bit number for identifying objects or information int he form of a 36 character alphanumerical string. "
@@ -98,7 +123,20 @@ function ConfigPanel({
             <div className="config-card">
                 <h3>Identifier Strategy</h3>
                 <label>
-                <select value={strategy} onChange={(e)=> setStrategy(e.target.value)}>
+                <select
+                    value={strategy}
+                    onChange={(e) => {
+                        const selectedStrategy = e.target.value;
+
+                        setStrategy(selectedStrategy);
+                        setVariant("");
+                        setVariants([]);
+
+                        if (selectedStrategy === "CPHI" || selectedStrategy === "PCGL") {
+                        setEntity_type("sample");
+                        }
+                    }}
+                >
                     <option value="UUID">UUID</option>
                     <option value="CPHI">CPHI</option>
                     <option value="PCGL">PCGL</option>
@@ -206,9 +244,10 @@ function ConfigPanel({
                             <select 
                                 value={project_code} 
                                 onChange={(e) => {
-                                    setProject_code(e.target.value);
-                                    setEntity_type("sample");
-                                    setVariant("");
+                                setProject_code(e.target.value);
+                                setEntity_type("sample");
+                                setVariant("");
+                                setVariants([]);
                                 }}
                             >
                                 <option value="">Select a Project Code</option>
@@ -242,6 +281,7 @@ function ConfigPanel({
                                     onChange={(e) => {
                                         setEntity_type(e.target.value); 
                                         setVariant("");
+                                        setVariants([]);
                                     }}
                                 >
                                     <option value="sample">Sample</option>
@@ -250,44 +290,59 @@ function ConfigPanel({
                                 </select>
                             </label>
                         )}
-                        {showPcglVariants && entity_type === "patient" &&(
+                        {showPcglVariants && isPcglValidateMode && (
                             <label>
                                 <span className="label-with-tooltip">
-                                    Variant
-                                    <span className="tooltip">
-                                        ?
-                                        <span className="tooltip-text">
-                                            Patient PCGL variants. SPE creates a specimen-related patient identifier.
-                                        </span>
+                                Variant
+                                <span className="tooltip">
+                                    ?
+                                    <span className="tooltip-text">
+                                    Optional PCGL variant to validate. Leave as None to validate base PCGL IDs.
                                     </span>
                                 </span>
-                                <select value={variant} onChange={(e) => setVariant(e.target.value)}>
-                                <option value="">None</option>
-                                <option value="SPE">SPE</option>
+                                </span>
 
-                                </select>
-                            </label>
-                        )}
-                        {showPcglEntityType && entity_type === "sample" && (
-                            <label>
-                                <span className="label-with-tooltip">
-                                    Variant
-                                    <span className="tooltip">
-                                        ?
-                                        <span className="tooltip-text">
-                                            Sample PCGL identifiers variants. For samples EXP is for experiment IDs, LIB is for library IDs, RG is for read groud IDs, WRK is for workflow IDs, ANA is for Analysis IDs. Each variant ID should be unique and persistent within each variant type.
-                                        </span>
-                                    </span>
-                                </span>
                                 <select value={variant} onChange={(e) => setVariant(e.target.value)}>
                                 <option value="">None</option>
-                                <option value="EXP">EXP</option>
-                                <option value="LIB">LIB</option>
-                                <option value="RG">RG</option>
-                                <option value="WRK">WRK</option>
-                                <option value="ANA">ANA</option>
+
+                                {availablePcglVariants.map((variantOption) => (
+                                    <option key={variantOption} value={variantOption}>
+                                    {variantOption}
+                                    </option>
+                                ))}
                                 </select>
                             </label>
+                            )}
+
+                            {showPcglVariants && isPcglGenerateMode && (
+                            <div className="checkbox-field">
+                                <span className="label-with-tooltip">
+                                Variants to Generate
+                                <span className="tooltip">
+                                    ?
+                                    <span className="tooltip-text">
+                                    Select one or more PCGL variants. The uploaded file must already contain valid base PCGL IDs.
+                                    </span>
+                                </span>
+                                </span>
+
+                                <div className="checkbox-group">
+                                {availablePcglVariants.map((variantOption) => (
+                                    <label key={variantOption} className="checkbox-option">
+                                    <input
+                                        type="checkbox"
+                                        checked={variants.includes(variantOption)}
+                                        onChange={() => togglePcglVariant(variantOption)}
+                                    />
+                                    <span>{variantOption}</span>
+                                    </label>
+                                ))}
+                                </div>
+
+                                <p className="field-help">
+                                If no variant is selected, PCGL generation will use base ID generation.
+                                </p>
+                            </div>
                         )}
                     </>
                     

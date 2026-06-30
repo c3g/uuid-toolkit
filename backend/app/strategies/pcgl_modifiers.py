@@ -237,3 +237,64 @@ class PCGL_Modifiers(StrategyInterface):
         )
 
         return f"{base_id}_{variant}_{modifier_id}"
+    
+    def get_strategy_info(self, config: dict | None= None) -> dict:
+        config = config or {}
+
+        if config.get("variants"):
+            return {
+                "generation_mode":"derive_from_existing",
+                "output_mode":"multiple_columns",
+                "requires_existing_identifier": True,
+                "preserve_input_identifier":True,
+            }
+        return super().get_strategy_info(config)
+    
+    def generate_derived_identifiers(self, source_identifier: str, config:dict | None = None) -> dict[str,str]:
+        """
+        Generate one or more PCGL variant identifiers from an exisitng base PCGL ID
+
+        Example:
+        source_identifier:
+            NRGI-123456
+
+        config:
+            {
+                "project_code": "NRGI",
+                "entity_type": "sample",
+                "variants": ["EXP", "LIB"]
+            }
+
+        returns:
+            {
+                "pcgl_EXP_id": "NRGI-123456_EXP_4829",
+                "pcgl_LIB_id": "NRGI-123456_LIB_1038"
+            }
+        """
+        config = config or {}
+
+        variants = config.get("variants", [])
+
+        if not variants:
+            raise ValueError("Missing 'variants' for PCGL derived generation of identifiers.")
+        
+        base_result = self.base_strategy.validate(source_identifier, config)
+
+        if base_result["valid"] is not True:
+            raise ValueError(base_result["message"])
+        
+        generated_outputs: dict[str,str] = {}
+
+        for variant in variants:
+            if variant not in self.ALLOWED_VARIANTS:
+                raise ValueError(
+                    f"Invalid vairant:'{variant}'."
+                    f"Allowed values: {sorted(self.ALLOWED_VARIANTS)}"
+                )
+            modifier_id = "".join(
+                random.choices(string.digits, k=self.MODIFIER_ID_LENGTH)
+            )
+            generated_outputs[variant] = f"{source_identifier}_{variant}_{modifier_id}"
+
+
+        return generated_outputs

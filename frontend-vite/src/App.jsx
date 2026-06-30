@@ -23,6 +23,7 @@ function App() {
   const [entity_type, setEntity_type] = useState("");
   const [project_code, setProject_code] = useState("");
   const [variant, setVariant] = useState("");
+  const [variants, setVariants] = useState([]);
 
   /* Input / output state */
   const [idColumn, setIdColumn] = useState("identifier");
@@ -61,6 +62,13 @@ function App() {
       resultRows.flatMap((row) => Object.keys(row.metadata || {}))
     )
   );
+  const generatedIdentifierKeys = Array.from(
+  new Set(
+    resultRows.flatMap((row) =>
+      Object.keys(row.generated_identifiers || {})
+    )
+  )
+);
 
   /* Reset old results when user changes configuration */
   useEffect(() => {
@@ -74,6 +82,7 @@ function App() {
     strategy,
     project_code,
     variant,
+    variants,
     idColumn,
     outIdColumn,
     uuidVersion,
@@ -121,10 +130,19 @@ function App() {
     }
 
     if (strategy === "PCGL") {
-      return {
+      const baseConfig = {
         project_code: project_code,
         entity_type: entity_type || "sample",
-        variant: variant,
+      };
+
+      if (mode === "generate")
+        return {
+          ...baseConfig,
+          variants:variants,
+        }
+      return {
+        ...baseConfig,
+        variant: variant||"",
       };
     }
 
@@ -303,24 +321,27 @@ function App() {
     };
   }
 
-  function convertRowsToCsv(rows) {
+  function convertRowsToCsv(rows, shouldFlatten = true) {
     if (!rows || rows.length === 0) {
       return "";
     }
 
-    const flattenedRows = rows.map(flattenRow);
+    const rowsForCsv = shouldFlatten ? rows.map(flattenRow) : rows;
 
     const headers = Array.from(
-      new Set(flattenedRows.flatMap((row) => Object.keys(row)))
+      new Set(rowsForCsv.flatMap((row) => Object.keys(row)))
     );
 
     const csvLines = [
       headers.join(","),
-      ...flattenedRows.map((row) =>
+      ...rowsForCsv.map((row) =>
         headers
           .map((header) => {
             const value = row[header] ?? "";
-            const escapedValue = String(value).replaceAll('"', '""');
+            const safeValue =
+              typeof value === "object" ? JSON.stringify(value) : value;
+
+            const escapedValue = String(safeValue).replaceAll('"', '""');
             return `"${escapedValue}"`;
           })
           .join(",")
@@ -330,8 +351,8 @@ function App() {
     return csvLines.join("\n");
   }
 
-  function downloadCsv(rows, filename) {
-    const csvString = convertRowsToCsv(rows);
+  function downloadCsv(rows, filename, shouldFlatten = true) {
+    const csvString = convertRowsToCsv(rows, shouldFlatten);
 
     if (!csvString) {
       setError("No rows available to download.");
@@ -353,11 +374,21 @@ function App() {
   }
 
   function downloadAllRows() {
-    downloadCsv(resultRows, "all_results.csv");
+    if (result?.updated_records) {
+      downloadCsv(result.updated_records, "all_results.csv", false);
+      return;
+    }
+
+    downloadCsv(resultRows, "all_results.csv", true);
   }
 
   function downloadCleanRows() {
-    downloadCsv(cleanRows, "clean_rows.csv");
+    if (result?.clean_records) {
+      downloadCsv(result.clean_records, "clean_rows.csv", false);
+      return;
+    }
+
+    downloadCsv(cleanRows, "clean_rows.csv", true);
   }
 
   return (
@@ -388,6 +419,8 @@ function App() {
               setProject_code={setProject_code}
               variant={variant}
               setVariant={setVariant}
+              variants = {variants}
+              setVariants = {setVariants}
               idColumn={idColumn}
               setIdColumn={setIdColumn}
               outIdColumn={outIdColumn}
@@ -428,6 +461,7 @@ function App() {
               resultRows={resultRows}
               visible_rows={visible_rows}
               metadataKeys={metadataKeys}
+              generatedIdentifierKeys={generatedIdentifierKeys}
               outIdName={outIdName}
               maxVisibleRows={MAX_VISIBLE_ROWS}
               downloadAllRows={downloadAllRows}

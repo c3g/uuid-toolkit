@@ -23,7 +23,7 @@ function SummaryCard({ className, icon, alt, label, value }) {
     );
 }
 
-function SummaryCards({ summary, mode }) {
+function SummaryCards({ summary, mode, generationMode }) {
     if (!summary) {
         return null;
     }
@@ -35,6 +35,16 @@ function SummaryCards({ summary, mode }) {
         ? "preview-grid generation-grid"
         : "preview-grid validation-grid"
 
+
+    const isDerivedGenerationMode =
+        isGenerationMode &&
+        (
+            generationMode === "derive_from_existing" ||
+            summary.generated_row_count !== undefined
+        );
+
+    const isFillMissingGenerationMode =
+        isGenerationMode && !isDerivedGenerationMode;
     return (
         <section className={gridClassName}>
             <SummaryCard
@@ -81,62 +91,122 @@ function SummaryCards({ summary, mode }) {
                 </>
             )}
 
-            {isGenerationMode && (
+            {isFillMissingGenerationMode && (
                 <>
                     <SummaryCard
-                        className="generated-rows"
-                        icon={generatedIcon}
-                        alt="Generated rows icon"
-                        label="Generated Rows:"
-                        value={summary.generated_count}
+                    className="generated-rows"
+                    icon={generatedIcon}
+                    alt="Generated rows icon"
+                    label="Generated Rows:"
+                    value={summary.generated_count}
                     />
 
                     <SummaryCard
-                        className="existing-rows"
-                        icon={existingIcon}
-                        alt="Existing IDs icon"
-                        label="Existing IDs:"
-                        value={summary.existing_count}
+                    className="existing-rows"
+                    icon={existingIcon}
+                    alt="Existing IDs icon"
+                    label="Existing IDs:"
+                    value={summary.existing_count}
                     />
 
                     <SummaryCard
-                        className="missing-rows"
-                        icon={missingIcon}
-                        alt="Missing IDs icon"
-                        label="Missing IDs:"
-                        value={summary.missing_count}
+                    className="missing-rows"
+                    icon={missingIcon}
+                    alt="Missing IDs icon"
+                    label="Missing IDs:"
+                    value={summary.missing_count}
                     />
 
                     <SummaryCard
-                        className="valid-rows"
-                        icon={validIcon}
-                        alt="Existing valid IDs icon"
-                        label="Existing Valid IDs:"
-                        value={summary.existing_valid_count}
+                    className="valid-rows"
+                    icon={validIcon}
+                    alt="Existing valid IDs icon"
+                    label="Existing Valid IDs:"
+                    value={summary.existing_valid_count}
                     />
 
                     <SummaryCard
-                        className="invalid-rows"
-                        icon={invalidIcon}
-                        alt="Existing invalid IDs icon"
-                        label="Existing Invalid IDs:"
-                        value={summary.existing_invalid_count}
+                    className="invalid-rows"
+                    icon={invalidIcon}
+                    alt="Existing invalid IDs icon"
+                    label="Existing Invalid IDs:"
+                    value={summary.existing_invalid_count}
                     />
 
                     <SummaryCard
-                        className="duplicated-rows"
-                        icon={duplicateIcon}
-                        alt="Duplicated existing IDs icon"
-                        label="Duplicated Existing IDs:"
-                        value={summary.duplicate_count}
+                    className="duplicated-rows"
+                    icon={duplicateIcon}
+                    alt="Duplicated existing IDs icon"
+                    label="Duplicated Existing IDs:"
+                    value={summary.duplicate_count}
                     />
 
                     <SummaryCard
-                        className="clean-rows"
-                        icon={cleanIcon}
-                        alt="Clean rows icon"
-                        label="Clean Rows:"
-                        value={summary.clean_count}
+                    className="clean-rows"
+                    icon={cleanIcon}
+                    alt="Clean rows icon"
+                    label="Clean Rows:"
+                    value={summary.clean_count}
+                    />
+                </>
+            )}
+
+            {isDerivedGenerationMode && (
+                <>
+                    <SummaryCard
+                    className="generated-rows"
+                    icon={generatedIcon}
+                    alt="Generated rows icon"
+                    label="Generated Rows:"
+                    value={summary.generated_row_count}
+                    />
+
+                    <SummaryCard
+                    className="generated-rows"
+                    icon={generatedIcon}
+                    alt="Generated identifiers icon"
+                    label="Generated IDs:"
+                    value={summary.generated_identifier_count}
+                    />
+
+                    <SummaryCard
+                    className="missing-rows"
+                    icon={missingIcon}
+                    alt="Missing source IDs icon"
+                    label="Missing Base IDs:"
+                    value={summary.missing_source_count}
+                    />
+
+                    <SummaryCard
+                    className="invalid-rows"
+                    icon={invalidIcon}
+                    alt="Invalid source IDs icon"
+                    label="Invalid Base IDs:"
+                    value={summary.source_invalid_count}
+                    />
+
+                    <SummaryCard
+                    className="duplicated-rows"
+                    icon={duplicateIcon}
+                    alt="Duplicate source IDs icon"
+                    label="Duplicate Base IDs:"
+                    value={summary.duplicate_source_count}
+                    />
+
+                    <SummaryCard
+                    className="invalid-rows"
+                    icon={invalidIcon}
+                    alt="Generation conflicts icon"
+                    label="Generation Conflicts:"
+                    value={summary.generation_conflict_count}
+                    />
+
+                    <SummaryCard
+                    className="clean-rows"
+                    icon={cleanIcon}
+                    alt="Clean rows icon"
+                    label="Clean Rows:"
+                    value={summary.clean_count}
                     />
                 </>
             )}

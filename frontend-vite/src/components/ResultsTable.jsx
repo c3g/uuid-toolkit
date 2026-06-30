@@ -2,6 +2,7 @@ function ResultsTable({
     resultRows,
     visible_rows,
     metadataKeys,
+    generatedIdentifierKeys,
     outIdName,
     maxVisibleRows
 }){
@@ -24,6 +25,9 @@ function ResultsTable({
                         <th>Row #</th>
                         <th>ID Field</th>
                         <th>{outIdName}</th>
+                        {generatedIdentifierKeys.map((key) => (
+                            <th key={key}>{key}</th>
+                        ))}
                         <th>Status</th>
                         <th>Message</th>
 
@@ -39,6 +43,10 @@ function ResultsTable({
                         <td>{row.row_index}</td>
                         <td>{row.id_field}</td>
                         <td>{row.identifier}</td>
+
+                        {generatedIdentifierKeys.map((key) => (
+                            <td key={key}>{row.generated_identifiers?.[key] ?? ""}</td>
+                        ))}
 
                         <td>
                             <span

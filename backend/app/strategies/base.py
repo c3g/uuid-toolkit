@@ -66,3 +66,42 @@ class StrategyInterface(abc.ABC):
             For example CPHI would require the project code and also the variant in order to place the project code in the front and whether to concatenate a variant.
         """
         pass
+
+    def get_strategy_info(self, config:dict | None = None) -> dict:
+        """
+        Returns strategy metadata that tells the pipeline how this strategy behaves in terms of validation and generation.
+
+        Default Behaviour:
+        - Generate missing identifiers
+        - Validate existing identifiers and leave them unchanged
+        - Write one generated identifier into one output column
+
+        """
+        return {
+            "generation_mode":"fill_missing",
+            "output_mode":"single_column",
+            "requires_existing_identifier": False,
+            "preserve_input_identifier":False,
+        }
+    def generate_derived_identifiers(
+        self,
+        source_identifier: str,
+        config: dict | None = None,
+    ) -> dict[str, str]:
+        """
+        Generate one or more identifiers from an existing source identifier.
+
+        Strategies that support derived generation should override this method.
+
+        Example:
+            source_identifier = "NRGI-123456"
+
+            returns:
+            {
+                "pcgl_EXP_id": "NRGI-123456_EXP_4829",
+                "pcgl_LIB_id": "NRGI-123456_LIB_1038"
+            }
+        """
+        raise NotImplementedError(
+            "This strategy does not support derived identifier generation."
+        )
