@@ -23,7 +23,7 @@ function ResultsTable({
                     <thead>
                     <tr>
                         <th>Row #</th>
-                        <th>ID Field</th>
+                        {/*<th>ID Field</th>*/}
                         <th>{outIdName}</th>
                         {generatedIdentifierKeys.map((key) => (
                             <th key={key}>{key}</th>
@@ -41,7 +41,7 @@ function ResultsTable({
                     {visible_rows.map((row, index) => (
                         <tr key={index}>
                         <td>{row.row_index}</td>
-                        <td>{row.id_field}</td>
+                        {/*<td>{row.id_field}</td>*/}
                         <td>{row.identifier}</td>
 
                         {generatedIdentifierKeys.map((key) => (

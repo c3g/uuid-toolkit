@@ -124,11 +124,102 @@ def run_generation_pipeline(
         sheet_name: str |None = None,
 ) -> dict:
     """
-    Generate identifiers in a uploaded file.
+    Run the identifier generation pipeline for an uploaded file.
 
-    This is the main orchestrator that decides the type of generation to be done based on the information provided
-    from strategy.get_strategy_info(). Its chooses reusable generation for strategies based on whether they generate
-    several columns or just a single one and if you preserve the original column.
+    This function is the main entry point for generation requests. It parses the
+    uploaded file, normalizes the parsed records, loads the selected identifier
+    strategy, and then chooses the correct generation workflow based on the
+    strategy's generation mode.
+
+    The actual generation logic is delegated to one of the reusable generation
+    workflows:
+
+    - ``fill_missing``:
+        Used when missing identifiers should be generated while valid existing
+        identifiers are preserved.
+
+    - ``derive_from_existing``:
+        Used when one or more new identifiers should be derived from an existing
+        source/base identifier. This is useful for strategies that generate
+        several output columns, such as PCGL derived variant identifiers.
+
+    The generation mode is provided by ``strategy.get_strategy_info(config)``.
+    If the strategy does not define a generation mode, the pipeline defaults to
+    ``fill_missing``.
+
+    Parameters
+    ----------
+    file_bytes:
+        Raw bytes from the uploaded file.
+
+    file_type:
+        File type of the uploaded file. This determines how the parser reads the
+        file. Supported values depend on ``parse_file``, such as ``"csv"``,
+        ``"json"``, or ``"xlsx"``.
+
+    strategy_name:
+        Name of the identifier strategy to use. This value is passed to the
+        strategy registry so the correct validation and generation behavior can
+        be loaded.
+
+    config:
+        Optional strategy-specific configuration values. These values are passed
+        into the selected strategy and may include fields such as project code,
+        entity type, variant, variants, UUID version, or custom format settings.
+        If ``None`` is provided, an empty dictionary is used.
+
+    id_name:
+        Optional name of the input identifier column. If provided, the parser and
+        normalizer use this column to find existing identifiers in the uploaded
+        records.
+
+    output_id_field:
+        Name of the column where generated identifiers should be written when an
+        input row does not already have an identifier column. Defaults to
+        ``"identifier"``.
+
+    sheet_name:
+        Optional worksheet name for XLSX uploads. If no sheet name is provided,
+        the parser uses the active worksheet.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the generation response. The exact summary fields
+        depend on the generation mode, but the response generally includes:
+
+        ``mode``:
+            The pipeline mode. For this function, the value is ``"generation"``.
+
+        ``generation_mode``:
+            The generation workflow used, such as ``"derive_from_existing"``.
+            Some generation responses may omit this field when using the default
+            fill-missing workflow.
+
+        ``summary``:
+            Counts describing what happened during generation, such as total
+            rows, generated rows, skipped rows, invalid rows, duplicate rows, or
+            clean rows.
+
+        ``results``:
+            Row-level results describing each row's action, identifier, validity,
+            error message, user-facing message, metadata, and any generated
+            identifiers.
+
+        ``updated_records``:
+            All uploaded records after generation has been applied. This is used
+            for downloading the full output, including both successful and
+            unsuccessful rows.
+
+        ``clean_records``:
+            Only the rows that are valid and safe to use after generation. This
+            is used for downloading the clean output.
+
+    Raises
+    ------
+    ValueError
+        If the selected strategy returns an unsupported generation mode.
+
     """
     config = config or {}
 
@@ -167,6 +258,88 @@ def run_fill_missing_generation(
         config:dict,
         output_id_field: str,
 )-> dict:
+    """
+    Generate identifiers for rows that are missing an identifier.
+
+    This function is used for the normal generation workflow where some rows may
+    already have identifiers and some rows may be missing them.
+
+    The main idea is:
+    - If a row already has an identifier, validate it and leave it unchanged.
+    - If a row is missing an identifier, generate a new one.
+    - If an existing identifier is invalid or duplicated, report it as an error.
+    - If a generated identifier conflicts with another ID, try to regenerate it.
+
+    This function does not overwrite existing identifiers just because they are
+    invalid. Invalid existing IDs are kept in the updated records but are not added
+    to the clean records.
+
+    Parameters
+    ----------
+    normalized_records:
+        A list of records that already went through the normalizer.
+
+        Each record should contain information such as the row index, the identifier,
+        the ID column name, the original row, metadata, and any warnings that came
+        from normalization.
+
+    strategy:
+        The strategy object used to validate existing identifiers and generate new
+        identifiers.
+
+        For example, this could be the UUID, CPHI, PCGL, or custom strategy.
+
+    config:
+        A dict containing the values needed by the strategy.
+
+        For example, this may include the project code, entity type, UUID version,
+        variant, or custom format options depending on the selected strategy.
+
+    output_id_field:
+        The column name that should be used when a row does not already have an ID
+        column.
+
+        If the uploaded file already has an ID column, that existing column is used.
+        If not, this value is used as the new column name.
+
+    Returns
+    -------
+    dict:
+        A dict containing the generation results.
+
+        The returned dict has the following format:
+
+        {
+            "mode": "generation",
+            "summary": {
+                "total_rows": ...,
+                "existing_count": ...,
+                "missing_count": ...,
+                "generated_count": ...,
+                "existing_valid_count": ...,
+                "existing_invalid_count": ...,
+                "skipped_count": ...,
+                "duplicate_count": ...,
+                "generation_conflict_count": ...,
+                "error_count": ...,
+                "clean_count": ...
+            },
+            "results": ...,
+            "updated_records": ...,
+            "clean_records": ...
+        }
+
+        results:
+            Row-level information showing what happened to each row.
+
+        updated_records:
+            All rows after generation has been applied. This includes valid rows,
+            invalid rows, generated rows, and skipped rows.
+
+        clean_records:
+            Only the rows that are valid and safe to use.
+    """
+    
     existing_identifier_to_rows: dict[str, list[int]] = {}
     existing_validation_results: dict[int, dict] = {}
     missing_row_indexes: list[int] = []
@@ -399,16 +572,96 @@ def run_derive_from_existing_generation(
     output_id_field: str,
 ) -> dict:
     """
-    Derived generation workflow.
+    Generate derived identifiers from existing source identifiers.
 
-    Rules:
-    - Existing source IDs are required.
-    - Missing source IDs are invalid.
-    - Source IDs are validated before duplicate checks.
-    - Duplicate valid source IDs are invalid.
-    - Valid source IDs are used to generate one or more derived identifiers.
-    - Generated derived identifiers are checked for uniqueness.
-    - The original source ID column is preserved.
+    This function is used when the uploaded file already has a base/source ID and
+    the strategy needs to generate one or more new identifiers from it.
+
+    This is different from fill-missing generation because the source identifier is
+    required. If the source identifier is missing, the row is invalid and no derived
+    identifier is generated for that row.
+
+    The main idea is:
+    - Check that each row has a source identifier.
+    - Use the strategy to validate the source identifier.
+    - Generate one or more derived identifiers from the valid source identifier.
+    - Check for duplicate source identifiers.
+    - Check that generated derived identifiers do not conflict with existing source
+    IDs or with each other.
+    - Add the generated identifiers as new columns while keeping the original source
+    ID column.
+
+    This is useful for generation modes where one base ID can create several
+    variant IDs, such as PCGL derived identifiers.
+
+    Parameters
+    ----------
+    normalized_records:
+        A list of records that already went through the normalizer.
+
+        Each record should contain information such as the row index, the identifier,
+        the ID column name, the original row, metadata, and any warnings that came
+        from normalization.
+
+    strategy:
+        The strategy object used to generate derived identifiers.
+
+        The strategy must have a generate_derived_identifiers method. That method
+        should also validate the source identifier before generating the derived IDs.
+
+    config:
+        A dict containing the values needed by the strategy.
+
+        For example, this may include the project code, entity type, selected
+        variants, or other options needed for derived generation.
+
+    output_id_field:
+        The base column name used when creating the generated output columns.
+
+        For example, if output_id_field is "identifier" and the strategy generates
+        EXP and LIB identifiers, the output columns may become:
+
+        {
+            "identifier_EXP": "...",
+            "identifier_LIB": "..."
+        }
+
+    Returns
+    -------
+    dict:
+        A dict containing the derived generation results.
+
+        The returned dict has the following format:
+
+        {
+            "mode": "generation",
+            "generation_mode": "derive_from_existing",
+            "summary": {
+                "total_rows": ...,
+                "generated_row_count": ...,
+                "generated_identifier_count": ...,
+                "missing_source_count": ...,
+                "duplicate_source_count": ...,
+                "source_invalid_count": ...,
+                "generation_conflict_count": ...,
+                "error_count": ...,
+                "clean_count": ...
+            },
+            "results": ...,
+            "updated_records": ...,
+            "clean_records": ...
+        }
+
+        results:
+            Row-level information showing what happened to each row.
+
+        updated_records:
+            All rows after derived generation has been applied. Successful rows will
+            have the generated columns added. Invalid rows are still included but do
+            not get generated columns.
+
+        clean_records:
+            Only the rows where derived generation was successful.
     """
 
     immediate_invalid_results: dict[int, dict] = {}
@@ -431,6 +684,7 @@ def run_derive_from_existing_generation(
 
         target_id_field_by_row[row_index] = target_id_field
 
+        #Check to see if the base identifier exists
         if source_identifier is None:
             missing_source_count += 1
 
@@ -447,6 +701,7 @@ def run_derive_from_existing_generation(
             continue
 
         try:
+            #generate_derived_identifiers helps validate the base PCGL ID to make sure it follows the format
             raw_generated_outputs = strategy.generate_derived_identifiers(
                 source_identifier,
                 config,
@@ -621,6 +876,8 @@ def run_derive_from_existing_generation(
         "updated_records": updated_records,
         "clean_records": clean_records,
     }
+
+
 def build_derived_output_columns(
     raw_generated_outputs: dict[str, str],
     target_id_field: str,

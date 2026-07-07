@@ -312,7 +312,6 @@ function App() {
   function flattenRow(row) {
     return {
       row_index: row.row_index,
-      id_field: row.id_field,
       [outIdName]: row.identifier,
       status: row.valid ? "Valid" : "Invalid",
       message: row.message || "",
@@ -320,13 +319,19 @@ function App() {
       ...(row.metadata || {}),
     };
   }
+  function removeInternalDownloadFields(row) {
+    const { id_field, ...cleanRow } = row;
+    return cleanRow;
+  }
 
   function convertRowsToCsv(rows, shouldFlatten = true) {
     if (!rows || rows.length === 0) {
       return "";
     }
 
-    const rowsForCsv = shouldFlatten ? rows.map(flattenRow) : rows;
+    const rowsForCsv = shouldFlatten
+      ? rows.map(flattenRow).map(removeInternalDownloadFields)
+      : rows.map(removeInternalDownloadFields);
 
     const headers = Array.from(
       new Set(rowsForCsv.flatMap((row) => Object.keys(row)))

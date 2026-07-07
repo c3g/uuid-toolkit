@@ -253,6 +253,43 @@ class PCGL_Modifiers(StrategyInterface):
     def generate_derived_identifiers(self, source_identifier: str, config:dict | None = None) -> dict[str,str]:
         """
         Generate one or more PCGL variant identifiers from an exisitng base PCGL ID
+        The generated identifier follows the following format:
+
+            <BASE_PCGL>_<VARIANT>_<4_DIGIT_ID>
+
+        Example:
+            NRGI-123456_EXP_0001
+
+        The base PCGL is provided by the user in the input file.
+        The variant section comes from the config["variant"] section in whicht the user 
+        passes as input the type of variant. The 4 digit ID is randomly generated using the random library.
+
+        Parameters
+        ----------
+        source_identifier:
+            The base identifier that will be concatenated with the variant and 4 digit ID to create the right variant ID.
+
+        config:
+            A strategy configuration stored in a dict. It contains values need by the base PCGL generator
+            as well as the choice between sample and patient type and the subsequent variant type.
+        
+        Returns
+        -------
+        dict
+            It returns a dict with all the variant identifiers. Each key is the variant selected by the user and the values are the identifier of that variant.
+            This allows for several variants for each source identifier according to user specification.
+        
+        Raises
+        ------
+        Value Error
+            Raised when config values are missing or invalid depending on they type of value needed
+        
+        Dependency Notes
+        ----------------
+        The generation pipeline calls this method for rows that contain a valid base ID.
+        The pipeline later check generated IDs for conflicts within the existing file, and generated values.
+        The variants generated depend on config passing on a input that is without underscores.
+        If the frontend/API passes on values that contain anything other than the right abbreviations it could create invalid identifiers.
 
         Example:
         source_identifier:

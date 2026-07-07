@@ -1,3 +1,10 @@
+"""
+API route for identifier validation.
+
+This file defines the /validate endpoint. It receives uploaded files and form
+data from the frontend, validates the request inputs, and then calls the
+validation pipeline.
+"""
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from core.pipeline import run_validation_pipeline
@@ -19,6 +26,97 @@ async def validate_identifiers(
     id_name: str | None = Form(None),
     sheet_name: str | None = Form(None),
 ) -> dict:
+    """
+    Validate identifiers from an uploaded file.
+
+    This is the API route for validation requests. It receives the file and form
+    data from the frontend, cleans and validates the inputs, and then passes the
+    data into the validation pipeline.
+
+    The main idea is:
+    - Read the uploaded file.
+    - Check that the file is not empty.
+    - Infer the file type from the filename.
+    - Normalize the selected strategy name.
+    - Parse config_json into a Python dict.
+    - Validate and normalize the config for validation.
+    - Clean the optional ID column name.
+    - Call run_validation_pipeline.
+
+    This function does not contain the actual identifier validation logic. The real
+    validation work is handled inside the pipeline and the selected strategy.
+
+    Form fields
+    -----------
+    file:
+        The uploaded file from the frontend.
+
+        Supported file types depend on infer_file_type, such as:
+        - .csv
+        - .json
+        - .xlsx
+
+    strategy_name:
+        The strategy selected by the user.
+
+        Examples:
+        - "UUID"
+        - "CPHI"
+        - "PCGL"
+        - "CUSTOM"
+
+    config_json:
+        A JSON string containing the config values needed by the selected strategy.
+
+        UUID example:
+            {"version": 4}
+
+        CPHI example:
+            {"project_code": "NRGI", "entity_type": "sample"}
+
+        PCGL example:
+            {"project_code": "NRGI", "entity_type": "sample", "variant": "EXP"}
+
+        Custom example:
+            {
+                "prefix_mode": "fixed",
+                "fixed_prefix": "TEST",
+                "connector": "-",
+                "suffix_type": "numeric",
+                "suffix_length": 6
+            }
+
+    id_name:
+        Optional name of the column that contains the identifiers to validate.
+
+        If this is provided, the pipeline will validate identifiers from this column.
+
+    sheet_name:
+        Optional sheet name for XLSX files.
+
+        If no sheet name is provided, the parser will use the active sheet.
+
+    Returns
+    -------
+    dict:
+        A dict returned by run_validation_pipeline.
+
+        The response usually contains:
+
+        {
+            "mode": "validation",
+            "summary": ...,
+            "results": ...,
+            "clean_records": ...
+        }
+
+    Raises
+    ------
+    HTTPException:
+        Returns status code 400 if the user input is invalid.
+
+        Returns status code 500 if an unexpected server error occurs.
+    """
     try:
         file_bytes = await file.read()
 

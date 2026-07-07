@@ -1,3 +1,22 @@
+"""
+File parsing functions for uploaded files that should contain identifiers for validation or data rows to create identifiers for.
+
+This module is responsible for taking in file bytes provided by the pipeline and then converting them into a list of python dictionaries 
+that the rest of the pipeline can process,
+
+This module only supports the following file formats:
+- CSV
+- JSON
+- XLSX
+
+The parser doesn't validate or clean up any of the data that the user provided.
+It doesn't handle any validation or generation of identifiers.
+It only takes the file and converts it into a standardized list of dictionaries.
+More detailed normalization and cleanup are handled by the normalizer.py and strategy specific validation.
+
+
+"""
+
 import json
 import csv
 import io
@@ -11,6 +30,18 @@ def parse_file(
         id_name:str | None,
         sheet_name:str |None,
         ):
+    """
+    Parses an uploaded file into a list of dictionaries.
+
+    Depending on the file type the function will adjust the way the file is parsed.
+    Supported file types:
+    - CSV
+    - JSON
+    - XLSX
+
+    Each returned dictionary represetns one row from the file with the key being the column name and the values are the cell values.
+
+    """
     if file_type == 'json':
         return json.loads(file_bytes.decode('utf-8-sig'))
     elif file_type == 'csv':
@@ -29,6 +60,12 @@ def parse_xlsx(
         id_name:str | None,
         sheet_name:str |None,
     ) -> list[dict]:
+    """
+    Parse XLSX files bytes into a list of dictionaries
+
+    The XLSX parser reads the uploaded workboo, selects the requested worksheet or defaults to the active worksheet.
+    Extracts headers from the first row, and converts the remaining non-empty rows into dictionaries.
+    """
     
     workbook = load_workbook(
         filename=io.BytesIO(file_bytes),
