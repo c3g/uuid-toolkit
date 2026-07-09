@@ -4,3 +4,6 @@ python-multipart
 pytest
 httpx
 openpyxl
+sqlalchemy
+psycopg[binary]
+python-dotenv

@@ -22,3 +22,6 @@ dist/
 "@ | Out-File -Encoding utf8 .gitignore
 
 frontend-vite/src/components_archive/
+
+#env files
+.env
