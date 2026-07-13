@@ -7,26 +7,34 @@ class Base(DeclarativeBase):
 class Project(Base):
     __tablename__ = "projects"
 
-    id: Mapped[int]= mapped_column(primary_key=True)
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "strategy_name",
+            name="uq_project_name_strategy",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(
         String,
         nullable=False,
-        unique=True,
     )
 
     strategy_name: Mapped[str] = mapped_column(
         String,
-        nullable = False,
+        nullable=False,
     )
 
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         String,
-        nullable = True,
+        nullable=True,
     )
-    identifier: Mapped[list["IdentifierRegistry"]] = relationship(
-        back_populates = "project",
-        cascade = "all, delete-orphan",
+
+    identifiers: Mapped[list["IdentifierRegistry"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
     )
 
 class IdentifierRegistry(Base):
@@ -44,17 +52,19 @@ class IdentifierRegistry(Base):
 
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id"),
-        nullable = False,
+        nullable=False,
     )
+
     identifier_value: Mapped[str] = mapped_column(
         String,
-        nullable = False,
+        nullable=False,
     )
+
     strategy_name: Mapped[str] = mapped_column(
         String,
-        nullable = False,
+        nullable=False,
     )
 
     project: Mapped["Project"] = relationship(
-        back_populates ="identifiers",
+        back_populates="identifiers",
     )
