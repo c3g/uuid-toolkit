@@ -2,7 +2,48 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from db.models import IdentifierRegistry
+from db.models import IdentifierRegistry, Project
+
+def list_identifiers(
+        session:Session,
+)-> list[IdentifierRegistry]:
+    statement = (
+        select(IdentifierRegistry)
+        .order_by(IdentifierRegistry.id)
+        )
+
+    result = session.execute(statement)
+
+    return list(result.scalars().all())
+
+def list_identifiers_by_project(
+        session:Session,
+        *,
+        project_id: int,
+)-> list[IdentifierRegistry]:
+    statement = (
+        select(IdentifierRegistry)
+        .where(IdentifierRegistry.project_id == project_id)
+        .order_by(IdentifierRegistry.id)
+    )
+    result = session.execute(statement)
+
+    return list(result.scalars().all())
+
+def list_identifiers_by_strategy(
+        session:Session,
+        *,
+        strategy_name: str,
+) -> list[IdentifierRegistry]:
+    statement = (
+        select(IdentifierRegistry)
+        .where(IdentifierRegistry.strategy_name == strategy_name)
+        .order_by(IdentifierRegistry.id)
+    )
+    result = session.execute(statement)
+
+    return list(result.scalars().all())
+
 
 def find_project_conflicts(
     session: Session,
@@ -79,3 +120,37 @@ def save_identifiers_to_project(
         session.refresh(saved_identifier)
     
     return saved_identifiers
+
+def find_other_project_matches(
+        session: Session,
+        *,
+        project_id:int,
+        strategy_name:str,
+        identifiers:set[str],
+)->dict[str,list[str]]:
+    """
+    Find identifiers that exist in other projects under the same strategy.
+    """
+
+    if not identifiers:
+        return {}
+    
+    statement = (
+        select(
+            IdentifierRegistry.identifier_value,
+            Project.name,
+        )
+        .join(Project, IdentifierRegistry.project_id == Project.id)
+        .where(IdentifierRegistry.project_id != project_id)
+        .where(IdentifierRegistry.strategy_name == strategy_name)
+        .where(IdentifierRegistry.identifier_value.in_(identifiers))
+    )
+
+    rows = session.execute(statement).all()
+
+    matches: dict[str,list[str]]= {}
+
+    for identifier_value, project_name in rows:
+        matches.setdefault(identifier_value,[]).append(project_name)
+    
+    return matches

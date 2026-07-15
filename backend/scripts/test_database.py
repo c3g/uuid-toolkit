@@ -10,6 +10,14 @@ from db.project_repository import (
     get_project_by_name,
     list_projects,
 )
+from db.identifier_repository import (
+    find_project_conflicts,
+    find_strategy_conflicts,
+    save_identifiers_to_project,
+    list_identifiers,
+    list_identifiers_by_project,
+    list_identifiers_by_strategy,
+)
 
 
 def main() -> None:
@@ -89,6 +97,42 @@ def main() -> None:
 
         for item in list_projects(session):
             print(item.id, item.name, item.strategy_name)
+        
+        print("All identifier records:")
+
+        for item in list_identifiers(session):
+            print(
+                item.id,
+                item.project_id,
+                item.identifier_value,
+                item.strategy_name,
+            )
+
+        print("Identifiers in this project:")
+
+        for item in list_identifiers_by_project(
+            session,
+            project_id=project.id,
+        ):
+            print(
+                item.id,
+                item.project_id,
+                item.identifier_value,
+                item.strategy_name,
+            )
+
+        print("CPHI identifiers:")
+
+        for item in list_identifiers_by_strategy(
+            session,
+            strategy_name="CPHI",
+        ):
+            print(
+                item.id,
+                item.project_id,
+                item.identifier_value,
+                item.strategy_name,
+            )
 
     finally:
         session.close()
