@@ -85,17 +85,23 @@ def run_validation_pipeline(
                 duplicate_msg,
                 normalized[row_index].get("warnings",[]),
             )
-
+    updated_records = []
     clean_records = []
 
     for record, row_result in zip(normalized, results):
-        if row_result["valid"] is True:
-            clean_record=record["original_record"].copy()
+        updated_record = record["original_record"].copy()
 
-            if row_result["id_field"] is not None:
-                clean_record[row_result["id_field"]]=row_result["identifier"]
-            
-            clean_records.append(clean_record)
+        if row_result["id_field"] is not None:
+            updated_record[row_result["id_field"]] = (
+                row_result["identifier"]
+            )
+
+        # Every input row goes into updated_records.
+        updated_records.append(updated_record)
+
+        # Only currently valid rows go into clean_records.
+        if row_result["valid"] is True:
+            clean_records.append(updated_record.copy())
 
     valid_count = sum(1 for row in results if row["valid"] is True)
     invalid_count = len(results) - valid_count
@@ -111,6 +117,7 @@ def run_validation_pipeline(
             "clean_count": len(clean_records),
         },
         "results": results,
+        "updated_records": updated_records,
         "clean_records": clean_records,
     }
 
@@ -122,6 +129,7 @@ def run_generation_pipeline(
         id_name: str | None = None,
         output_id_field: str = "identifier",
         sheet_name: str |None = None,
+        reserved_identifiers: set[str] |None = None,
 ) -> dict:
     """
     Run the identifier generation pipeline for an uploaded file.
@@ -182,6 +190,16 @@ def run_generation_pipeline(
         Optional worksheet name for XLSX uploads. If no sheet name is provided,
         the parser uses the active worksheet.
 
+    reserved_identifiers:
+        Optional set of identifiers that generation must avoid.
+
+        These identifiers come from the database comparison layer and represent
+        hard conflicts in the current comparison scope. The pipeline does not
+        query the database itself.
+
+        If a generated candidate matches one of these identifiers, the existing
+        generation conflict-resolution logic attempts to generate a new value.
+
     Returns
     -------
     dict
@@ -223,6 +241,12 @@ def run_generation_pipeline(
     """
     config = config or {}
 
+    reserved_identifiers = {
+        identifier.strip()
+        for identifier in (reserved_identifiers or set())
+        if isinstance(identifier,str) and identifier.strip()
+    }
+
     parsed = parse_file(
         file_bytes, 
         file_type, 
@@ -242,6 +266,7 @@ def run_generation_pipeline(
             strategy=strategy,
             config= config,
             output_id_field = output_id_field,
+            reserved_identifiers=reserved_identifiers,
         )
     if generation_mode == "derive_from_existing":
         return run_derive_from_existing_generation(
@@ -249,14 +274,16 @@ def run_generation_pipeline(
             strategy=strategy,
             config= config,
             output_id_field = output_id_field,
+            reserved_identifiers=reserved_identifiers,
         )
     raise ValueError(f"Unsupported generation mode '{generation_mode}'.")
 
 def run_fill_missing_generation(
     normalized_records:list[dict],
-        strategy,
-        config:dict,
-        output_id_field: str,
+    strategy,
+    config:dict,
+    output_id_field: str,
+    reserved_identifiers:set[str]|None = None,
 )-> dict:
     """
     Generate identifiers for rows that are missing an identifier.
@@ -339,7 +366,9 @@ def run_fill_missing_generation(
         clean_records:
             Only the rows that are valid and safe to use.
     """
-    
+    #Creating a default in case database provides none
+    reserved_identifiers = reserved_identifiers or set()
+
     existing_identifier_to_rows: dict[str, list[int]] = {}
     existing_validation_results: dict[int, dict] = {}
     missing_row_indexes: list[int] = []
@@ -372,12 +401,21 @@ def run_fill_missing_generation(
     duplicate_existing_row_indexes = find_duplicate_row_indexes(
         existing_identifier_to_rows
     )
-    existing_count = len (normalized_records) - len(missing_row_indexes)
+    existing_count = len(normalized_records) - len(missing_row_indexes)
     missing_count = len(missing_row_indexes)
-    # Existing IDs are reserved.
-    # Generated IDs must not collide with any valid existing ID,
-    # even if the existing ID itself is duplicated.
-    existing_identifiers = set(existing_identifier_to_rows.keys())
+
+    # Valid identifiers already present in the uploaded file.
+    existing_identifiers = set(
+        existing_identifier_to_rows.keys()
+    )
+
+    # Generated IDs must avoid:
+    # 1. valid existing IDs from the uploaded file
+    # 2. hard-conflict IDs already stored in the database
+    blocked_identifiers = (
+        existing_identifiers
+        | reserved_identifiers
+    )
 
     # Pass 2:
     # Generate IDs for all missing rows first.
@@ -390,7 +428,7 @@ def run_fill_missing_generation(
     # Resolve generated-existing and generated-generated conflicts.
     unresolved_generated_conflict_rows = resolve_generated_conflicts(
         generated_by_row=generated_by_row,
-        existing_identifiers=existing_identifiers,
+        existing_identifiers=blocked_identifiers,
         strategy=strategy,
         config=config,
         max_attempts=MAX_GENERATION_ATTEMPTS,
@@ -570,6 +608,7 @@ def run_derive_from_existing_generation(
     strategy,
     config: dict,
     output_id_field: str,
+    reserved_identifiers:set[str] |None = None,
 ) -> dict:
     """
     Generate derived identifiers from existing source identifiers.
@@ -663,6 +702,7 @@ def run_derive_from_existing_generation(
         clean_records:
             Only the rows where derived generation was successful.
     """
+    reserved_identifiers = reserved_identifiers or set()
 
     immediate_invalid_results: dict[int, dict] = {}
     generated_by_row: dict[int, dict[str, str]] = {}
@@ -767,13 +807,23 @@ def run_derive_from_existing_generation(
         generated_by_row.pop(row_index, None)
         source_identifier_by_row.pop(row_index, None)
 
-    existing_identifiers = set(source_identifier_to_rows.keys())
+    # Valid source/base identifiers from the uploaded file.
+    existing_identifiers = set(
+        source_identifier_to_rows.keys()
+    )
 
+    # Derived generated identifiers must avoid:
+    # 1. source/base IDs in the uploaded file
+    # 2. hard-conflict IDs already stored in the database
+    blocked_identifiers = (
+        existing_identifiers
+        | reserved_identifiers
+    )
     # Pass 3:
     # Resolve generated-generated and generated-existing conflicts.
     unresolved_generated_conflict_rows = resolve_derived_generated_conflicts(
         generated_by_row=generated_by_row,
-        existing_identifiers=existing_identifiers,
+        existing_identifiers=blocked_identifiers,
         source_identifier_by_row=source_identifier_by_row,
         strategy=strategy,
         config=config,

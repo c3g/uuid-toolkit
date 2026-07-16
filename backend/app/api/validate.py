@@ -5,7 +5,11 @@ This file defines the /validate endpoint. It receives uploaded files and form
 data from the frontend, validates the request inputs, and then calls the
 validation pipeline.
 """
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from sqlalchemy.orm import Session
+
+from db.comparison import compare_pipeline_result_to_database
+from db.database import get_db_session
 
 from core.pipeline import run_validation_pipeline
 from api.utils import (
@@ -25,6 +29,9 @@ async def validate_identifiers(
     config_json: str = Form("{}"),
     id_name: str | None = Form(None),
     sheet_name: str | None = Form(None),
+    project_id: int | None = Form(None),
+    session: Session = Depends(get_db_session),
+
 ) -> dict:
     """
     Validate identifiers from an uploaded file.
@@ -133,7 +140,7 @@ async def validate_identifiers(
 
         id_name = clean_optional_string(id_name)
 
-        return run_validation_pipeline(
+        pipeline_result = run_validation_pipeline(
             file_bytes=file_bytes,
             file_type=file_type,
             strategy_name=strategy_name,
@@ -141,6 +148,15 @@ async def validate_identifiers(
             id_name=id_name,
             sheet_name=sheet_name,
         )
+
+        pipeline_result = compare_pipeline_result_to_database(
+            session,
+            pipeline_result=pipeline_result,
+            strategy_name=strategy_name,
+            project_id=project_id,
+        )
+
+        return  pipeline_result
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
 

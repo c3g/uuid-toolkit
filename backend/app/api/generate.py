@@ -5,7 +5,8 @@ This file defines the /generate endpoint. It receives uploaded files and form
 data from the frontend, validates the request inputs, and then calls the
 generation pipeline.
 """
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from sqlalchemy.orm import Session
 
 from core.pipeline import run_generation_pipeline
 from api.utils import (
@@ -15,6 +16,11 @@ from api.utils import (
     normalize_strategy_name,
     validate_and_normalize_config,
 )
+from db.comparison import (
+    compare_pipeline_result_to_database,
+    get_hard_reserved_identifiers_for_generation,
+)
+from db.database import get_db_session
 
 
 router = APIRouter()
@@ -28,6 +34,8 @@ async def generate_identifiers(
     id_name: str | None = Form(None),
     output_id_field: str | None = Form(None),
     sheet_name: str | None = Form(None),
+    project_id: int |None = Form(None),
+    session: Session = Depends(get_db_session),
 ) -> dict:
     """
     Generate identifiers from an uploaded file.
@@ -155,8 +163,18 @@ async def generate_identifiers(
         id_name = clean_optional_string(id_name)
         output_id_field = clean_optional_string(output_id_field) or "identifier"
 
-        # 7. Call generation pipeline
-        return run_generation_pipeline(
+        #7. Get database identifiers under scope indicated
+        reserved_identifiers = (
+            get_hard_reserved_identifiers_for_generation(
+                session,
+                strategy_name=strategy_name,
+                project_id=project_id,
+            )
+        )
+
+        #8. Run generation pipeline
+
+        pipeline_result = run_generation_pipeline(
             file_bytes=file_bytes,
             file_type=file_type,
             strategy_name=strategy_name,
@@ -164,7 +182,25 @@ async def generate_identifiers(
             id_name=id_name,
             output_id_field=output_id_field,
             sheet_name=sheet_name,
+            reserved_identifiers=reserved_identifiers,
         )
+
+        #9. Compare final generated results against the database
+        # This adds the following:
+        # - marks remaining hard conflicts meaning overlap under the scope indicated
+        # - adds soft warnings for overlaps outside of scope
+        # - rebuilds clean_records and final summary
+
+        pipeline_result = compare_pipeline_result_to_database(
+            session,
+            pipeline_result=pipeline_result,
+            strategy_name=strategy_name,
+            project_id=project_id,
+        )
+
+        #10. Return final pipeline result after database check
+        
+        return pipeline_result
 
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))

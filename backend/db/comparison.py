@@ -1,9 +1,8 @@
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 from dataclasses import dataclass
 from typing import Literal
 
 from db.identifier_repository import (
-    list_identifiers,
     list_identifiers_by_project,
     list_identifiers_by_strategy,
     find_project_conflicts,
@@ -11,6 +10,11 @@ from db.identifier_repository import (
     find_other_project_matches,
 )
 from db.project_repository import get_project_by_id
+
+from core.pipeline_response import (
+    rebuild_clean_records,
+    rebuild_summary,
+)
 
 @dataclass
 class DatabaseScope:
@@ -133,21 +137,24 @@ def resolve_database_scope(
     
 
 def get_hard_reserved_identifiers_for_generation(
-        session: Session,
-        *,
-        strategy_name:str,
-        project_id:int |None,
+    session: Session,
+    *,
+    strategy_name: str,
+    project_id: int | None,
 ) -> set[str]:
     """
-    Get database identifiers that generated IDs must not duplicate.
-
-    If project_id is provided:
-        only selected-project IDs are hard reserved.
-
-    If project_id is None:
-        all same-strategy IDs are hard reserved.
+    Get identifiers that generated IDs must avoid.
     """
-    if project_id is not None:
+
+    scope = resolve_database_scope(
+        session,
+        strategy_name=strategy_name,
+        project_id=project_id,
+    )
+
+    if scope.scope_type == "project":
+        assert project_id is not None
+
         records = list_identifiers_by_project(
             session,
             project_id=project_id,
@@ -240,40 +247,95 @@ def apply_database_comparison_to_result(
             - warning is appended to the message
     """
 
-    for row_result in pipeline_result.get("result",[]):
+    hard_conflict_row_count = 0
+    soft_warning_row_count = 0
+
+    for row_result in pipeline_result.get("results", []):
         if row_result.get("valid") is not True:
             continue
 
-        row_identifiers = get_identifiers_from_row_result(row_result)
+        row_identifiers = get_identifiers_from_row_result(
+            row_result
+        )
 
         if not row_identifiers:
             continue
 
-        hard_matches = row_identifiers & comparison.hard_conflicts
+        hard_matches = (
+            row_identifiers
+            & comparison.hard_conflicts
+        )
 
         if hard_matches:
             row_result["valid"] = False
-            row_result["error"] = "Database Conflict"
+            row_result["error"] = "Database conflict"
             row_result["message"] = build_hard_conflict_message(
-                conflicting_identifiers = hard_matches,
+                conflicting_identifiers=hard_matches,
+                scope=comparison.hard_conflict_scope,
             )
+
+            hard_conflict_row_count += 1
             continue
 
-        warning_matches = row_identifiers & set(comparison.soft_warnings.keys())
+        warning_matches = (
+            row_identifiers
+            & set(comparison.soft_warnings)
+        )
 
         if warning_matches:
             warning_message = build_soft_warning_message(
-                warning_identifiers = warning_matches,
-                soft_warnings = comparison.soft_warnings,
+                warning_identifiers=warning_matches,
+                soft_warnings=comparison.soft_warnings,
             )
+
             row_result["message"] = append_warning_to_message(
-                row_result.get("message",""),
+                row_result.get("message", ""),
                 warning_message,
             )
+
+            soft_warning_row_count += 1
+
     rebuild_clean_records(pipeline_result)
-    rebuild_summary(pipeline_result)
+
+    rebuild_summary(
+        pipeline_result,
+        database_hard_conflict_count=hard_conflict_row_count,
+        database_soft_warning_count=soft_warning_row_count,
+    )
 
     return pipeline_result
+
+def compare_pipeline_result_to_database(
+    session: Session,
+    *,
+    pipeline_result: dict,
+    strategy_name: str,
+    project_id: int | None,
+) -> dict:
+    """
+    Run the complete post-pipeline database comparison.
+
+    This function:
+    1. Collects valid identifiers from the pipeline result.
+    2. Queries the database for hard conflicts and soft warnings.
+    3. Applies those matches to the row results.
+    4. Rebuilds clean_records and summary.
+    """
+    identifiers = collect_valid_identifiers_from_results(
+        pipeline_result
+    )
+
+    comparison = compare_identifiers_to_database(
+        session,
+        strategy_name=strategy_name,
+        project_id=project_id,
+        identifiers=identifiers,
+    )
+
+    return apply_database_comparison_to_result(
+        pipeline_result,
+        comparison=comparison,
+    )
 
 #Helper functions:
 
@@ -290,7 +352,7 @@ def build_hard_conflict_message(
 
     if scope.scope_type == "project":
         scope_message = (
-            f"project '{scope.display_ngame}' "
+            f"project '{scope.display_name}' "
             f"under the '{scope.strategy_name}' strategy"
         )
     else:
@@ -311,3 +373,37 @@ def build_hard_conflict_message(
         + ", ".join(sorted_identifiers)
         + "."
     )
+
+def build_soft_warning_message(
+        *,
+        warning_identifiers: set[str],
+        soft_warnings: dict[str,list[str]],
+) -> str:
+    """
+    Build a warning message to explain which other projects have an identical identifier.
+    """
+
+    warning_parts: list[str] = []
+
+    for identifier in sorted(warning_identifiers):
+        project_names = sorted(set(soft_warnings.get(identifier,[])))
+
+        warning_parts.append(
+            f"Identifier '{identifier}' also exists in the other project(s):"
+            +",".join(project_names)
+            +"."
+        )
+    return "".join(warning_parts)
+
+def append_warning_to_message(
+        message:str,
+        warning:str,
+)-> str:
+    """
+    Appending the database warning message to the current existing pipeline message without replacing the original message.
+    """
+
+    if not message:
+        return f"Warning:{warning}"
+    return f"{message} Warning:{warning}"
+
