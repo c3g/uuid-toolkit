@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.validate import router as validate_router
 from api.generate import router as generate_router
 from api.identifier_database import router as identifiers_router
+from api.database_management import (
+    router as database_management_router,
+)
 
 
 app = FastAPI(
@@ -103,3 +106,4 @@ def get_options() -> dict:
 app.include_router(validate_router, prefix="/api")
 app.include_router(generate_router, prefix="/api")
 app.include_router(identifiers_router,prefix="/api")
+app.include_router(database_management_router,prefix="/api")

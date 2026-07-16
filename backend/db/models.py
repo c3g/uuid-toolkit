@@ -35,6 +35,7 @@ class Project(Base):
     identifiers: Mapped[list["IdentifierRegistry"]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
+        passive_deletes =True,
     )
 
 class IdentifierRegistry(Base):
@@ -51,7 +52,10 @@ class IdentifierRegistry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"),
+        ForeignKey(
+            "projects.id",
+            ondelete ="CASCADE",
+        ),
         nullable=False,
     )
 

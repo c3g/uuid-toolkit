@@ -41,11 +41,16 @@ def get_project_by_id(
     return result.scalar_one_or_none()
 
 def get_project_by_name(
-        session: Session,
-        *,
-        name:str,
-    ) -> Project|None:
-    statement = select(Project).where(Project.name == name)
+    session: Session,
+    *,
+    name: str,
+    strategy_name: str,
+) -> Project | None:
+    statement = (
+        select(Project)
+        .where(Project.name == name)
+        .where(Project.strategy_name == strategy_name)
+    )
 
     result = session.execute(statement)
 

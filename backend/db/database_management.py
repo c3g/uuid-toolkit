@@ -65,7 +65,7 @@ def create_project(
     
     return project
 
-def delete_identifiers_by_id(
+def delete_identifier_by_id(
         session: Session,
         *,
         identifier_id: int,
