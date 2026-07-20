@@ -3,6 +3,12 @@ function ConfigPanel({
     setMode,
     strategy,
     setStrategy,
+
+    projects,
+    projectId,
+    setProjectId,
+    projectsLoading,
+
     entity_type,
     setEntity_type,
     project_code,
@@ -121,32 +127,75 @@ function ConfigPanel({
 
             {/*Identifier Strategy */}
             <div className="config-card">
-                <h3>Identifier Strategy</h3>
+                <h3>Identifier Strategy and Project</h3>
                 <label>
-                <select
-                    value={strategy}
-                    onChange={(e) => {
-                        const selectedStrategy = e.target.value;
+                    Strategy
+                    <select
+                        value={strategy}
+                        onChange={(e) => {
+                            const selectedStrategy = e.target.value;
 
-                        setStrategy(selectedStrategy);
-                        setVariant("");
-                        setVariants([]);
+                            setStrategy(selectedStrategy);
+                            setProjectId("");
+                            setVariant("");
+                            setVariants([]);
 
-                        if (selectedStrategy === "CPHI" || selectedStrategy === "PCGL") {
-                        setEntity_type("sample");
-                        }
-                    }}
-                >
-                    <option value="UUID">UUID</option>
-                    <option value="CPHI">CPHI</option>
-                    <option value="PCGL">PCGL</option>
-                    <option value="CUSTOM">Custom</option>
-                </select>
+                            if (selectedStrategy === "CPHI" || selectedStrategy === "PCGL") {
+                            setEntity_type("sample");
+                            }
+                        }}
+                    >
+                        <option value="UUID">UUID</option>
+                        <option value="CPHI">CPHI</option>
+                        <option value="PCGL">PCGL</option>
+                        <option value="CUSTOM">Custom</option>
+                    </select>
                 </label>
                 <div className="strategy-description">
                 <strong>Description:</strong>
                 <p>{getStrategyDescription()}</p>
                 </div>
+
+                <label>
+                    <span className="label-with-tooltip">
+                        Project Tag
+                        <span className="tooltip">
+                            ?
+                            <span className="tooltip-text">
+                                Select the database project used when checking for
+                                existing identifiers. Matches inside the selected
+                                project are conflicts. Matches in other projects
+                                using the same strategy are warnings.
+                            </span>
+                        </span>
+                    </span>
+
+                    <select
+                        value={projectId}
+                        onChange={(e) => setProjectId(e.target.value)}
+                        disabled={projectsLoading}
+                    >
+                        <option value="">
+                            {projectsLoading
+                                ? "Loading Project Tags..."
+                                : "No Project Tag"}
+                        </option>
+
+                        {projects.map((project) => (
+                            <option
+                                key={project.id}
+                                value={project.id}
+                            >
+                                {project.name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <p className="field-help">
+                    No Project Tag checks for conflicts across the complete strategy.
+                </p>
+
+
             </div>
 
             {/*Configuration card */}
@@ -494,6 +543,7 @@ function ConfigPanel({
                         </label>
                     </>    
                 )}
+
                 
             </div>
 
@@ -523,7 +573,7 @@ function ConfigPanel({
                             </span>
                         </span>
                     </span>
-                <   input type="text" value={outIdColumn} onChange={(e) => setOutIdColumn(e.target.value)} placeholder={idColumn||"identifier"}/>
+                <input type="text" value={outIdColumn} onChange={(e) => setOutIdColumn(e.target.value)} placeholder={idColumn||"identifier"}/>
                 </label>
                 {/*<p className="output-field-help">Leave output field empty to use the input ID column name.</p>*/}
                 <label>

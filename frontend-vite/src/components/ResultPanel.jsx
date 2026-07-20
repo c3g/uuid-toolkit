@@ -27,7 +27,7 @@ function ResultPanel({
             <SummaryCards
                 summary={result.summary}
                 mode={result.mode || mode}
-                generation_mode = {result.generation_mode}
+                generationMode = {result.generation_mode}
             />
             
 

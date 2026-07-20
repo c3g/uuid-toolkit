@@ -50,6 +50,11 @@ function App() {
   const [showRunConfirmation, setShowRunConfirmation] = useState(false);
   const [runConfirmationData, setRunConfirmationData] = useState(null);
 
+  /* Database values */
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState("");
+  const [projectsLoading, setProjectsLoading] = useState(false)
+
   /* Derived values */
   const outIdName = outIdColumn.trim() || idColumn.trim() || "identifier";
 
@@ -57,18 +62,20 @@ function App() {
   const cleanRows = resultRows.filter((row) => row.valid === true);
   const visible_rows = resultRows.slice(0, MAX_VISIBLE_ROWS);
 
+  
+
   const metadataKeys = Array.from(
     new Set(
       resultRows.flatMap((row) => Object.keys(row.metadata || {}))
     )
   );
   const generatedIdentifierKeys = Array.from(
-  new Set(
-    resultRows.flatMap((row) =>
-      Object.keys(row.generated_identifiers || {})
+    new Set(
+      resultRows.flatMap((row) =>
+        Object.keys(row.generated_identifiers || {})
+      )
     )
-  )
-);
+  );
 
   /* Reset old results when user changes configuration */
   useEffect(() => {
@@ -80,6 +87,7 @@ function App() {
     mode,
     entity_type,
     strategy,
+    projectId,
     project_code,
     variant,
     variants,
@@ -94,6 +102,55 @@ function App() {
     customSuffixType,
     customSuffixLength,
   ]);
+
+  /*Loading the projects for each strategy whenever strategy changes */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProjects() {
+        setProjectsLoading(true);
+        setProjectId("");
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/projects?strategy_name=${encodeURIComponent(
+                    strategy
+                )}`
+            );
+
+            if (!response.ok) {
+                throw new Error("Could not load project tags.");
+            }
+
+            const projectData = await response.json();
+
+            if (!cancelled) {
+                setProjects(projectData);
+            }
+        } catch (error) {
+            console.error(error);
+
+            if (!cancelled) {
+                setProjects([]);
+            }
+        } finally {
+            if (!cancelled) {
+                setProjectsLoading(false);
+            }
+        }
+    }
+
+    if (strategy) {
+        loadProjects();
+    } else {
+        setProjects([]);
+        setProjectId("");
+    }
+
+    return () => {
+        cancelled = true;
+    };
+}, [strategy]);
 
   /* File helpers */
   function getFileType(filename) {
@@ -215,9 +272,13 @@ function App() {
   }
 
   function buildRunConfirmation() {
+    const selectedProject = projects.find(
+      (project) => String(project.id) === String(projectId)
+    );
     return {
       mode: mode === "validate" ? "Validate" : "Generate",
       strategy: strategy,
+      projectTag: selectedProject?.name || "No project tag",
       fileName: file.name || "No file selected",
       config: buildConfig(),
       inputIdColumn: idColumn || "identifier",
@@ -262,6 +323,9 @@ function App() {
     formData.append("config_json", JSON.stringify(buildConfig()));
     formData.append("id_name", idColumn || "");
     formData.append("output_id_field", outIdName || idColumn || "");
+    if (projectId !== ""){
+      formData.append("project_id", projectId);
+    }
 
     if (sheetName.trim() !== "") {
       formData.append("sheet_name", sheetName.trim());
@@ -273,6 +337,8 @@ function App() {
       strategy_name: strategy,
       config_json: buildConfig(),
       id_name: idColumn,
+      output_id_field: outIdName,
+      project_id: projectId || null,
     });
 
     try {
@@ -418,6 +484,12 @@ function App() {
               setMode={setMode}
               strategy={strategy}
               setStrategy={setStrategy}
+
+              projects = {projects}
+              projectId={projectId}
+              setProjectId={setProjectId}
+              projectsLoading={projectsLoading}
+
               entity_type={entity_type}
               setEntity_type={setEntity_type}
               project_code={project_code}
@@ -426,6 +498,7 @@ function App() {
               setVariant={setVariant}
               variants = {variants}
               setVariants = {setVariants}
+
               idColumn={idColumn}
               setIdColumn={setIdColumn}
               outIdColumn={outIdColumn}
@@ -434,6 +507,7 @@ function App() {
               setUuidVersion={setUuidVersion}
               sheetName={sheetName}
               setSheetName={setSheetName}
+
               customPrefixMode={customPrefixMode}
               setCustomPrefixMode={setCustomPrefixMode}
               customPrefixType={customPrefixType}

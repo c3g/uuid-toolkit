@@ -186,3 +186,19 @@ Shared Summary Card Layout for result summary
   border: 2px solid #BBF7D0;
 }
 
+.database-conflicts{
+  background: #fff1f2;
+  border: 2px solid #fda4af;
+}
+.database-warnings{
+  background: #fffbeb;
+  border:2px solid #fcd34d;
+}
+
+.config-card select:disabled{
+  cursor: not-allowed;
+  background-attachment: #f1f5f9;
+  color: #94a3b8;
+  opacity:0.8;
+}
+

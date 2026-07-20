@@ -40,6 +40,10 @@ function RunConfirmationModal({
                         <strong>{data.strategy}</strong>
                     </div>
                     <div className="confirmation-row">
+                        <span>Project tag</span>
+                        <strong>{data.projectTag}</strong>
+                    </div>
+                    <div className="confirmation-row">
                         <span>File</span>
                         <strong>{data.fileName}</strong>
                     </div>

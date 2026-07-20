@@ -45,6 +45,8 @@ function SummaryCards({ summary, mode, generationMode }) {
 
     const isFillMissingGenerationMode =
         isGenerationMode && !isDerivedGenerationMode;
+    
+    const hasDatabaseComparison = summary.database_hard_conflict_count !== undefined || summary.database_soft_warning_count !== undefined;
     return (
         <section className={gridClassName}>
             <SummaryCard
@@ -54,6 +56,29 @@ function SummaryCards({ summary, mode, generationMode }) {
                 label="Total Rows:"
                 value={summary.total_rows}
             />
+            {hasDatabaseComparison && (
+                <>
+                    <SummaryCard
+                    className="database-conflicts"
+                    icon={invalidIcon}
+                    alt="Database conflicts icon"
+                    label="Database Conflicts:"
+                    value={
+                        summary.database_hard_conflict_count
+                    }
+                    />
+
+                    <SummaryCard
+                    className="database-warnings"
+                    icon={duplicateIcon}
+                    alt="Database warnings icon"
+                    label="Database Warnings:"
+                    value={
+                        summary.database_soft_warning_count
+                    }
+                    />
+                </>
+                )}
 
             {isValidationMode && (
                 <>

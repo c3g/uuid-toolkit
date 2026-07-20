@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import delete, select
-from sqlalchemy.exec import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db.models import IdentifierRegistry,Project
@@ -128,6 +128,7 @@ def delete_identifiers_by_strategy(
             delete(IdentifierRegistry)
             .where(IdentifierRegistry.strategy_name == cleaned_strategy_name)
         )
+        session.commit()
     except Exception:
         session.rollback()
         raise

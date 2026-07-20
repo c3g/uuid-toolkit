@@ -1,0 +1,5 @@
+identifier,expected_when_test_a_selected
+NRGI-111111,hard conflict
+NRGI-333333,soft warning
+NRGI-555555,hard conflict; also exists in Test B
+NRGI-999999,no DB conflict
