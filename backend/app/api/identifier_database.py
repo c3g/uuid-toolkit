@@ -57,7 +57,7 @@ def get_identifiers(
         for identifier in identifiers
     ]
 
-@router.post("/idemtifier_database/save")
+@router.post("/identifier_database/save")
 def save_clean_identifiers(
     request: SaveIdentifierRequest,
     session: Session = Depends(get_db_session)

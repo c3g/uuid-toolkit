@@ -25,3 +25,23 @@ Download Buttons
   background: #eff6ff;
   border-color: #0f56d9;
 }
+.download-actions .save-database-button {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: white;
+}
+
+.download-actions .save-database-button:hover:not(:disabled) {
+  background: #0b46b5;
+  border-color: #0b46b5;
+  color: white;
+}
+
+.download-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.download-actions button:disabled:hover {
+  border-color: #dbe7f6;
+}

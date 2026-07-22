@@ -1,0 +1,80 @@
+/*
+===
+Create Project Modal
+===
+*/
+
+.create-project-modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+
+  box-shadow:
+    0 24px 80px
+    rgba(15, 23, 42, 0.28);
+}
+
+.create-project-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-project-fields label {
+  display: block;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.create-project-fields input,
+.create-project-fields textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 10px 12px;
+
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: white;
+
+  color: var(--text-main);
+  font: inherit;
+}
+
+.create-project-fields textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.create-project-fields input:focus,
+.create-project-fields textarea:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(15, 86, 217, 0.12);
+}
+
+.create-project-fields input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.create-project-error {
+  margin: 0;
+  padding: 10px 12px;
+
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+}

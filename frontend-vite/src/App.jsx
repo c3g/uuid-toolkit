@@ -7,6 +7,7 @@ import ResultPanel from "./components/ResultPanel.jsx";
 import ErrorPanel from "./components/ErrorPanel.jsx";
 import EmptyResultState from "./components/EmptyResultState.jsx";
 import RunConfirmationModal from "./components/RunConfirmationModal.jsx";
+import CreateProjectModal from "./components/CreateProjectModal.jsx";
 import "./App.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -55,6 +56,26 @@ function App() {
   const [projectId, setProjectId] = useState("");
   const [projectsLoading, setProjectsLoading] = useState(false)
 
+  /*Database save states */
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveResult, setSaveResult] = useState(null);
+
+  /* Project creation modal state */
+  const [
+    showCreateProjectModal,
+    setShowCreateProjectModal,
+  ] = useState(false);
+
+  const [
+    projectCreateLoading,
+    setProjectCreateLoading,
+  ] = useState(false);
+
+  const [
+    projectCreateError,
+    setProjectCreateError,
+  ] = useState("");
+
   /* Derived values */
   const outIdName = outIdColumn.trim() || idColumn.trim() || "identifier";
 
@@ -62,7 +83,18 @@ function App() {
   const cleanRows = resultRows.filter((row) => row.valid === true);
   const visible_rows = resultRows.slice(0, MAX_VISIBLE_ROWS);
 
-  
+  /*Derived values for database */
+  const cleanIdentifiersForDatabase =
+  getCleanIdentifiersForDatabase(result);
+
+  const selectedProject = projects.find(
+    (project) =>
+      String(project.id) === String(projectId)
+  );
+
+  const saveDestinationName =
+    selectedProject?.name ||
+    `Unassigned (${strategy})`;
 
   const metadataKeys = Array.from(
     new Set(
@@ -83,6 +115,7 @@ function App() {
       setResult(null);
       setError("");
     }
+    setSaveResult(null);
   }, [
     mode,
     entity_type,
@@ -95,6 +128,7 @@ function App() {
     outIdColumn,
     uuidVersion,
     sheetName,
+    customPrefixType,
     customPrefixMode,
     customPrefixLength,
     customFixedPrefix,
@@ -150,7 +184,143 @@ function App() {
     return () => {
         cancelled = true;
     };
-}, [strategy]);
+  }, [strategy]);
+
+  /*Database Helpers */
+
+  function getCleanIdentifiersForDatabase(pipelineResult) {
+    const identifiers = new Set();
+
+    for (const row of pipelineResult?.results || []) {
+      if (row.valid !== true) {
+        continue;
+      }
+
+      const generatedIdentifiers = Object.values(
+        row.generated_identifiers || {}
+      )
+        .filter(
+          (value) => typeof value === "string"
+        )
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      /*
+      * Derived PCGL generation can produce several IDs
+      * from one row. Save the generated IDs instead of
+      * the source/base ID.
+      */
+      if (generatedIdentifiers.length > 0) {
+        for (
+          const generatedIdentifier
+          of generatedIdentifiers
+        ) {
+          identifiers.add(generatedIdentifier);
+        }
+
+        continue;
+      }
+
+      /*
+      * Validation and fill-missing generation normally
+      * use row.identifier.
+      */
+      if (
+        typeof row.identifier === "string" &&
+        row.identifier.trim() !== ""
+      ) {
+        identifiers.add(row.identifier.trim());
+      }
+    }
+
+    return Array.from(identifiers);
+  }
+
+  /*Create project request helpers */
+
+  async function createProject({
+    name,
+    description,
+  }){
+    const formData = new FormData();
+
+    formData.append("name",name);
+    formData.append("strategy_name", strategy)
+    
+    if (description !== ""){
+      formData.append("description",description);
+    }
+
+    try {
+      setProjectCreateLoading(true);
+      setProjectCreateError("");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/database-management/projects`,
+        {
+          method:"POST",
+          boyd:formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok){
+        const messsage = 
+          typeof data.detail === "string"
+          ? data.detail
+          : "The project could not be created.";
+        throw new Error(messsage);
+      }
+      /*
+      * Add the returned project to the dropdown.
+      * Remove an existing copy first, just in case.
+      */
+      setProjects((currentProjects) =>
+        [
+          ...currentProjects.filter(
+            (project) =>
+              project.id !== data.id
+          ),
+          data,
+        ].sort((firstProject, secondProject) =>
+          firstProject.name.localeCompare(
+            secondProject.name
+          )
+        )
+      );
+
+      /*
+      * Select the new project immediately.
+      */
+      setProjectId(String(data.id));
+
+      setShowCreateProjectModal(false);
+    } catch (error) {
+      setProjectCreateError(
+        error instanceof Error
+          ? error.message
+          : "The project could not be created."
+      );
+    } finally {
+      setProjectCreateLoading(false);
+    }
+
+  };
+
+  function openCreateProjectModal() {
+    setProjectCreateError("");
+    setShowCreateProjectModal(true);
+  }
+
+  function closeCreateProjectModal() {
+    if (projectCreateLoading) {
+      return;
+    }
+
+    setProjectCreateError("");
+    setShowCreateProjectModal(false);
+  }
 
   /* File helpers */
   function getFileType(filename) {
@@ -313,6 +483,7 @@ function App() {
   async function runRequest() {
     setError("");
     setResult(null);
+    setSaveResult(null);
 
     const endpoint = mode === "validate" ? "/api/validate" : "/api/generate";
 
@@ -360,6 +531,95 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveCleanIdentifiers() {
+    const identifiers =
+      getCleanIdentifiersForDatabase(result);
+
+    if (identifiers.length === 0) {
+      setError(
+        "There are no clean identifiers to save to the database."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Save ${identifiers.length} clean identifier${
+        identifiers.length === 1 ? "" : "s"
+      } to ${saveDestinationName}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const payload = {
+      strategy_name: strategy,
+      project_id:
+        projectId === ""
+          ? null
+          : Number(projectId),
+      identifiers: identifiers,
+    };
+
+    try {
+      setSaveLoading(true);
+      setSaveResult(null);
+      setError("");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/identifier_database/save`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMessage =
+          typeof data.detail === "string"
+            ? data.detail
+            : "The identifiers could not be saved.";
+
+        throw new Error(errorMessage);
+      }
+
+      setSaveResult(data);
+
+      /*
+        * Saving without a selected Project Tag may create
+        * a new Unassigned project. Reload the project list
+        * so it appears in the dropdown.
+        */
+      if (projectId === "") {
+        const projectsResponse = await fetch(
+          `${API_BASE_URL}/api/projects?strategy_name=${encodeURIComponent(
+            strategy
+          )}`
+        );
+
+        if (projectsResponse.ok) {
+          const refreshedProjects =
+            await projectsResponse.json();
+
+          setProjects(refreshedProjects);
+        }
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "The identifiers could not be saved."
+      );
+    } finally {
+      setSaveLoading(false);
     }
   }
 
@@ -489,6 +749,7 @@ function App() {
               projectId={projectId}
               setProjectId={setProjectId}
               projectsLoading={projectsLoading}
+              openCreateProjectModal={openCreateProjectModal}
 
               entity_type={entity_type}
               setEntity_type={setEntity_type}
@@ -545,12 +806,27 @@ function App() {
               maxVisibleRows={MAX_VISIBLE_ROWS}
               downloadAllRows={downloadAllRows}
               downloadCleanRows={downloadCleanRows}
+
+              saveCleanIdentifiers = {saveCleanIdentifiers}
+              saveLoading = {saveLoading}
+              saveResult={saveResult}
+              cleanIdentifierCount={cleanIdentifiersForDatabase.length}
+              saveDestinationName = {saveDestinationName}
             />
           ) : (
             <EmptyResultState />
           )}
         </main>
       </div>
+
+      <CreateProjectModal
+        isOpen = {showCreateProjectModal}
+        strategy={strategy}
+        loading={projectCreateLoading}
+        error={projectCreateError}
+        onClose={closeCreateProjectModal}
+        onSubmit={createProject}
+      />
 
       <RunConfirmationModal
         isOpen={showRunConfirmation}

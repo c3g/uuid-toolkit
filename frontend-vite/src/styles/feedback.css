@@ -108,3 +108,36 @@ Empty Result Table Styling
   object-fit: contain;
   display: block;
 }
+
+/*
+====
+Database save feedback
+====
+*/
+
+.database-save-feedback {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+
+  color: #166534;
+}
+
+.database-save-feedback > strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.database-save-feedback p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.database-save-feedback p strong {
+  font-weight: 700;
+}

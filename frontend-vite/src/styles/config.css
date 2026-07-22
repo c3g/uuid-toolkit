@@ -235,3 +235,38 @@ Checkbox styling
   color: #64748b;
   font-size: 13px;
 }
+
+/*
+===
+Project Tag actions
+===
+*/
+
+.project-tag-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 10px;
+}
+
+.new-project-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border-blue);
+  border-radius: 8px;
+
+  background: white;
+  color: var(--primary-blue);
+
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.new-project-button:hover:not(:disabled) {
+  background: var(--primary-blue-light);
+  border-color: var(--primary-blue);
+}
+
+.new-project-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

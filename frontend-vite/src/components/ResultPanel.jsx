@@ -13,6 +13,12 @@ function ResultPanel({
     maxVisibleRows,
     downloadAllRows,
     downloadCleanRows,
+
+    saveCleanIdentifiers,
+    saveLoading,
+    saveResult,
+    cleanIdentifierCount,
+    saveDestinationName,
 }) {
     return(
         
@@ -22,7 +28,43 @@ function ResultPanel({
             <DownloadActions
                 downloadAllRows={downloadAllRows}
                 downloadCleanRows={downloadCleanRows}
+                saveCleanIdentifiers={saveCleanIdentifiers}
+                saveLoading={saveLoading}
+                saveCompleted={saveResult!==null}
+                cleanIdentifierCount={cleanIdentifierCount}
+                saveDestinationName={saveDestinationName}
+
             />
+
+            {saveResult && (
+                <div 
+                    className="database-save-feedback"
+                    role="status"
+                >
+                    <strong>
+                        Database update is complete
+                    </strong>
+
+                    <p>
+                        Saved {saveResult.saved_count} identifier
+                        {saveResult.saved_count === 1 ? "" : "s"} to{" "}
+                        <strong>
+                            {saveResult.project_name}
+                        </strong>.
+                    </p>
+
+                    {saveResult.already_in_project_count > 0 && (
+                        <p>
+                            Skipped{" "}
+                            {saveResult.already_in_project_count} identifier
+                            {saveResult.already_in_project_count === 1
+                                ? ""
+                                : "s"}{" "}
+                            because they already existed in the project.
+                        </p>
+                    )}
+                </div>
+            )}
             
             <SummaryCards
                 summary={result.summary}
