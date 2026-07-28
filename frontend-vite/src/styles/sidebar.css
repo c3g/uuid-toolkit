@@ -47,11 +47,6 @@ Side bar styling
   object-fit: contain;
   flex-shrink: 0;
 }
-.sidebar nav {
-  display:flex;
-  flex-direction: column;
-  gap:10px;
-}
 .c3g-info {
   margin: 22px 0 28px 0;
   padding: 14px 16px;
@@ -71,25 +66,48 @@ Side bar styling
   font-weight: 500;
   line-height: 1.45;
 }
+.sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-.sidebar button{
-  padding:10px 12px;
-  text-align: left;
-  border:none;
-  background: transparent;
-  color:#E5EEF9;
-  cursor:pointer;
+.sidebar-nav-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 10px 12px;
+  border: none;
   border-radius: 8px;
-  transition: background 0.2s ease, color 0.2 ease;
+
+  background: transparent;
+  color: #e5eef9;
+
+  text-align: left;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
-.sidebar button:hover{
+
+.sidebar-nav-link:hover {
   background: #183b69;
+  color: #ffffff;
 }
-.sidebar button.active{
-  background: rgba(255,255,255,0.18);
-  color: #E5EEF9;
-  font-weight:700;
+
+.sidebar-nav-link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #e5eef9;
+  font-weight: 700;
 }
+
+
 .sidebar-bottom {
   margin-top: 32px;
 }
@@ -155,3 +173,4 @@ Side bar styling
   font-size: 11px;
   font-weight:500;
 }
+
