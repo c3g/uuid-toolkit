@@ -8,8 +8,16 @@ import RunConfirmationModal from "../components/RunConfirmationModal.jsx";
 import CreateProjectModal from "../components/CreateProjectModal.jsx";
 import "../App.css";
 
+import {
+    API_BASE_URL,
+} from "../services/apiClient.js";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+import {
+    createProject as createProjectRequest,
+    fetchProjects,
+} from "../services/projectsApi.js";
+
+/*Max visible rows in the preview table */
 const MAX_VISIBLE_ROWS = 20;
 
 function ToolkitPage() {
@@ -145,17 +153,8 @@ function ToolkitPage() {
         setProjectId("");
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/projects?strategy_name=${encodeURIComponent(
-                    strategy
-                )}`
-            );
 
-            if (!response.ok) {
-                throw new Error("Could not load project tags.");
-            }
-
-            const projectData = await response.json();
+            const projectData = await fetchProjects(strategy);
 
             if (!cancelled) {
                 setProjects(projectData);
@@ -232,80 +231,56 @@ function ToolkitPage() {
       }
     }
 
-    return Array.from(identifiers);
-  }
-
-  /*Create project request helpers */
-
-  async function createProject({
-    name,
-    description,
-  }){
-    const formData = new FormData();
-
-    formData.append("name",name);
-    formData.append("strategy_name", strategy)
-    
-    if (description !== ""){
-      formData.append("description",description);
+        return Array.from(identifiers);
     }
 
+    /*Create project request helpers */
+
+    async function handleCreateProject({
+        name,
+        description,
+    }) {
     try {
-      setProjectCreateLoading(true);
-      setProjectCreateError("");
+        setProjectCreateLoading(true);
+        setProjectCreateError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/database-management/projects`,
-        {
-          method:"POST",
-          body:formData,
-        }
-      );
+        const data =
+        await createProjectRequest({
+            name,
+            strategyName: strategy,
+            description,
+        });
 
-      const data = await response.json();
-
-      if (!response.ok){
-        const messsage = 
-          typeof data.detail === "string"
-          ? data.detail
-          : "The project could not be created.";
-        throw new Error(messsage);
-      }
-      /*
-      * Add the returned project to the dropdown.
-      * Remove an existing copy first, just in case.
-      */
-      setProjects((currentProjects) =>
+        setProjects((currentProjects) =>
         [
-          ...currentProjects.filter(
+            ...currentProjects.filter(
             (project) =>
-              project.id !== data.id
-          ),
-          data,
-        ].sort((firstProject, secondProject) =>
-          firstProject.name.localeCompare(
-            secondProject.name
-          )
+                project.id !== data.id
+            ),
+            data,
+        ].sort(
+            (
+            firstProject,
+            secondProject
+            ) =>
+            firstProject.name.localeCompare(
+                secondProject.name
+            )
         )
-      );
+        );
 
-      /*
-      * Select the new project immediately.
-      */
-      setProjectId(String(data.id));
-
-      setShowCreateProjectModal(false);
+        setProjectId(String(data.id));
+        setShowCreateProjectModal(false);
     } catch (error) {
-      setProjectCreateError(
+        setProjectCreateError(
         error instanceof Error
-          ? error.message
-          : "The project could not be created."
-      );
+            ? error.message
+            : "The project could not be created."
+        );
     } finally {
-      setProjectCreateLoading(false);
+        setProjectCreateLoading(false);
     }
-
-  };
+    }
 
   function openCreateProjectModal() {
     setProjectCreateError("");
@@ -825,7 +800,7 @@ function ToolkitPage() {
         loading={projectCreateLoading}
         error={projectCreateError}
         onClose={closeCreateProjectModal}
-        onSubmit={createProject}
+        onSubmit={handleCreateProject}
         />
 
         <RunConfirmationModal

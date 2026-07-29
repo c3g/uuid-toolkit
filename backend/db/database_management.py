@@ -87,6 +87,44 @@ def delete_identifier_by_id(
         raise
 
     return _safe_rowcount(result.rowcount) >0
+def delete_identifiers_by_value(
+        session: Session,
+        *,
+        identifier_value: str,
+        project_id: int |None = None,
+)-> int:
+    """
+    Delete rows whose identifier value exactly matches the supplied value.
+
+    When project_id is provided, only matching rows inside that project
+    are deleted. Otherwise, matching rows across all projects are deleted.
+    """
+    cleaned_identifier_value = identifier_value.strip()
+
+    if not cleaned_identifier_value:
+        raise ValueError("Identifier value cannot be empty.")
+
+    statement = (
+        delete(IdentifierRegistry)
+        .where(
+            IdentifierRegistry.identifier_value
+            == cleaned_identifier_value
+        )
+    )
+
+    if project_id is not None:
+        statement = statement.where(
+            IdentifierRegistry.project_id == project_id
+        )
+
+    try:
+        result = session.execute(statement)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return _safe_rowcount(result.rowcount)
 
 def delete_identifiers_by_project(
         session: Session,
@@ -132,6 +170,25 @@ def delete_identifiers_by_strategy(
     except Exception:
         session.rollback()
         raise
+    return _safe_rowcount(result.rowcount)
+
+def delete_all_identifiers(
+    session: Session,
+) -> int:
+    """
+    Delete every identifier-registry row.
+
+    Project rows and database tables are kept.
+    """
+    try:
+        result = session.execute(
+            delete(IdentifierRegistry)
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
     return _safe_rowcount(result.rowcount)
 
 def delete_project_by_id(

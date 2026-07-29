@@ -1,0 +1,544 @@
+/*
+===
+Database Management page
+===
+*/
+
+.database-management-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.database-page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.database-page-heading h1 {
+  margin: 0 0 6px;
+  color: var(--text-main, #0f172a);
+  font-size: 30px;
+}
+
+.database-page-heading p {
+  margin: 0;
+  color: var(--text-muted, #64748b);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.database-refresh-button {
+  padding: 10px 16px;
+
+  border: 1px solid
+    var(--primary-blue, #0f56d9);
+  border-radius: 9px;
+
+  background:
+    var(--primary-blue, #0f56d9);
+  color: white;
+
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.database-refresh-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.database-refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/*
+===
+Main database panel
+===
+*/
+
+.database-panel {
+  padding: 20px;
+
+  background: white;
+  border: 1px solid
+    var(--border-light, #dbe3ef);
+  border-radius: 14px;
+
+  box-shadow:
+    0 8px 24px
+    rgba(15, 23, 42, 0.05);
+}
+
+.database-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.database-panel-heading h2 {
+  margin: 0 0 5px;
+  color: var(--text-main, #0f172a);
+  font-size: 21px;
+}
+
+.database-panel-heading p {
+  margin: 0;
+  color: var(--text-muted, #64748b);
+  font-size: 14px;
+}
+
+.database-result-count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+
+  padding: 8px 12px;
+
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+
+  color: #1e40af;
+}
+
+.database-result-count strong {
+  font-size: 18px;
+}
+
+.database-result-count span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/*
+===
+Filters
+===
+*/
+
+.database-filters {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2fr)
+    minmax(160px, 1fr)
+    minmax(190px, 1fr);
+
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.database-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  color: var(--text-main, #0f172a);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.database-filter-field input,
+.database-filter-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 11px;
+
+  border: 1px solid
+    var(--border-light, #cbd5e1);
+  border-radius: 8px;
+
+  background: white;
+  color: var(--text-main, #0f172a);
+
+  font: inherit;
+  font-weight: 500;
+}
+
+.database-filter-field input:focus,
+.database-filter-field select:focus {
+  outline: none;
+  border-color:
+    var(--primary-blue, #0f56d9);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(15, 86, 217, 0.12);
+}
+
+.database-filter-field select:disabled {
+  cursor: not-allowed;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/*
+===
+Errors and empty states
+===
+*/
+
+.database-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-top: 18px;
+  padding: 11px 13px;
+
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.database-error button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.database-state-message {
+  margin-top: 20px;
+  padding: 32px;
+
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+
+  color: var(--text-muted, #64748b);
+  text-align: center;
+}
+
+/*
+===
+Identifier table
+===
+*/
+
+.database-table-wrapper {
+  margin-top: 20px;
+  overflow-x: auto;
+
+  border: 1px solid
+    var(--border-light, #dbe3ef);
+  border-radius: 10px;
+}
+
+.database-table {
+  width: 100%;
+  min-width: 760px;
+
+  border-collapse: collapse;
+  background: white;
+}
+
+.database-table th,
+.database-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+
+  text-align: left;
+  vertical-align: middle;
+}
+
+.database-table th {
+  background: #f8fafc;
+  color: #475569;
+
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.database-table td {
+  color: var(--text-main, #0f172a);
+  font-size: 14px;
+}
+
+.database-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.database-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.identifier-value-cell {
+  font-family:
+    "Consolas",
+    "Courier New",
+    monospace;
+
+  font-weight: 600;
+}
+
+.strategy-badge {
+  display: inline-flex;
+  padding: 4px 8px;
+
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/*
+===
+Responsive layout
+===
+*/
+
+@media (max-width: 900px) {
+  .database-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .database-filter-field:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .database-page-heading,
+  .database-panel-heading {
+    flex-direction: column;
+  }
+
+  .database-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .database-filter-field:first-child {
+    grid-column: auto;
+  }
+
+  .database-refresh-button {
+    width: 100%;
+  }
+}
+
+/*
+===
+Download actions
+===
+*/
+
+.database-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.database-secondary-button {
+  padding: 9px 14px;
+
+  background: white;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.database-secondary-button:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.database-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/*
+===
+Success message
+===
+*/
+
+.database-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-top: 18px;
+  padding: 11px 13px;
+
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+
+  color: #166534;
+  font-size: 14px;
+}
+
+.database-success button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+/*
+===
+Delete controls
+===
+*/
+
+.database-delete-panel {
+  margin-top: 4px;
+}
+
+.database-delete-form {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 0.8fr)
+    minmax(220px, 1.3fr)
+    minmax(220px, 1.3fr)
+    auto;
+
+  align-items: end;
+  gap: 14px;
+
+  margin-top: 20px;
+}
+
+.database-delete-button {
+  min-height: 42px;
+  padding: 10px 15px;
+
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.database-delete-button:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.database-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/*
+===
+Danger zone
+===
+*/
+
+.database-danger-zone {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+
+  margin-top: 26px;
+  padding-top: 22px;
+
+  border-top: 1px solid #fecaca;
+}
+
+.database-danger-zone h3 {
+  margin: 0 0 5px;
+  color: #991b1b;
+  font-size: 17px;
+}
+
+.database-danger-zone p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.database-danger-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.database-danger-button {
+  min-height: 42px;
+  padding: 10px 15px;
+
+  background: #7f1d1d;
+  border: 1px solid #7f1d1d;
+  border-radius: 8px;
+
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.database-danger-button:hover:not(:disabled) {
+  background: #631717;
+}
+
+.database-danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 1000px) {
+  .database-delete-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .database-danger-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .database-danger-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .database-action-buttons {
+    flex-direction: column;
+  }
+
+  .database-secondary-button {
+    width: 100%;
+  }
+
+  .database-delete-form {
+    grid-template-columns: 1fr;
+  }
+
+  .database-delete-button,
+  .database-danger-button {
+    width: 100%;
+  }
+}

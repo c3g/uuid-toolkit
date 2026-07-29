@@ -16,6 +16,8 @@ from db.database_management import (
     delete_identifiers_by_strategy,
     delete_project_by_id,
     delete_projects_by_strategy,
+    delete_identifiers_by_value,
+    delete_all_identifiers,
 )
 
 
@@ -84,7 +86,41 @@ def remove_identifier_row(
         "identifier_id": identifier_id,
         "deleted": True,
     }
+@router.delete("/identifiers/value")
+def remove_identifiers_by_value(
+    identifier_value: str = Query(...),
+    project_id: int | None = Query(None),
+    confirm: bool = Query(False),
+    session: Session = Depends(get_db_session),
+) -> dict:
+    require_confirmation(confirm)
 
+    try:
+        deleted_count = delete_identifiers_by_value(
+            session,
+            identifier_value=identifier_value,
+            project_id=project_id,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    if deleted_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Identifier '{identifier_value.strip()}' "
+                "was not found."
+            ),
+        )
+
+    return {
+        "identifier_value": identifier_value.strip(),
+        "project_id": project_id,
+        "identifiers_deleted": deleted_count,
+    }
 
 @router.delete("/identifiers/project/{project_id}")
 def remove_project_identifiers(
@@ -167,6 +203,22 @@ def remove_projects_for_strategy(
         **result,
     }
 
+@router.delete("/identifiers/all")
+def remove_all_identifiers(
+    confirm: bool = Query(False),
+    session: Session = Depends(get_db_session),
+) -> dict:
+    require_confirmation(confirm)
+
+    deleted_count = delete_all_identifiers(
+        session
+    )
+
+    return {
+        "deleted": True,
+        "identifiers_deleted": deleted_count,
+        "projects_deleted": 0,
+    }
 
 @router.delete("/all-data")
 def remove_all_data(
