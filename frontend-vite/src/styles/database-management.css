@@ -229,6 +229,8 @@ Identifier table
 .database-table-wrapper {
   margin-top: 20px;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
 
   border: 1px solid
     var(--border-light, #dbe3ef);
@@ -433,7 +435,7 @@ Delete controls
 
   color: white;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 
   cursor: pointer;
 }
@@ -488,13 +490,13 @@ Danger zone
   min-height: 42px;
   padding: 10px 15px;
 
-  background: #7f1d1d;
+  background: #d22b2be2;
   border: 1px solid #7f1d1d;
   border-radius: 8px;
 
   color: white;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 
   cursor: pointer;
 }

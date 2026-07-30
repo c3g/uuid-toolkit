@@ -58,6 +58,7 @@ export async function apiRequest(
     }
   }
 
+  /*Checking for other errors and displaying error instead of crashing */
   if (!response.ok) {
     const message = getErrorMessage(
       data,
