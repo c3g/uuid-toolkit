@@ -1,8 +1,8 @@
 """
 Custom identifier strategy.
 
-This module defines validation and generation logic for user-defined custom
-identifiers. A custom identifier is built from three configurable sections:
+This module validates and generates identifiers using a format chosen by the
+user:
 
     <PREFIX><CONNECTOR><SUFFIX>
 
@@ -13,94 +13,83 @@ Examples:
     NRGI_909090
     ABC1239999
 
-The user can configure:
-- prefix_mode:
-    - "fixed": every ID must use the same fixed prefix.
-    - "random": the prefix is generated or validated using a type and length.
-- prefix_type:
-    - Character type for random prefixes.
-    - Only required when prefix_mode is "random".
-- prefix_length:
-    - Length of the random prefix.
-    - Only required when prefix_mode is "random".
-- fixed_prefix:
-    - Exact prefix used for every ID.
-    - Only required when prefix_mode is "fixed".
-- connector:
-    - String placed between prefix and suffix.
-    - Supported values: "-", "_", "+", or "" for no connector.
-- suffix_type:
-    - Character type for the suffix.
-- suffix_length:
-    - Length of the suffix.
+The prefix can either be fixed or randomly generated. The connector is
+optional, and the suffix is always generated according to a selected character
+type and length.
 
 Supported character types:
-- "numeric": digits only.
-- "letters": letters only.
-- "alphanumeric": letters and digits.
 
-This strategy validates and generates IDs using normalized configuration values
-passed in by registry.py. The pipeline does not need to know the custom-format
-details. It only calls validate() and generate() through StrategyInterface.
+- ``numeric``: digits only.
+- ``letters``: letters only.
+- ``alphanumeric``: letters and digits.
 
-Dependency notes:
-- ConfigPanel.jsx controls which CUSTOM options the user can select.
-- App.jsx buildConfig() must send config keys matching this strategy.
-- api/utils.py should validate the same CUSTOM config keys before registry.py
-  creates this strategy.
-- registry.py constructs CustomStrategy from the validated config.
-- pipeline.py calls validate() and generate() through StrategyInterface, so the
-  validate() return shape should stay consistent with other strategies.
+How this file connects to the project
+-------------------------------------
+- ``registry.py`` creates ``CustomStrategy`` using the config received from the
+  pipeline.
+- ``StrategyInterface`` defines the shared ``validate()`` and ``generate()``
+  methods implemented here.
+- API config validation should reject missing or invalid CUSTOM options before
+  the strategy is created.
+- ``ConfigPanel.jsx`` displays the CUSTOM format controls.
+- ``ToolkitPage.jsx`` builds the CUSTOM config sent to the backend.
+- The pipelines handle duplicate checks and database conflicts after this
+  strategy validates or generates an identifier.
+
+Changing the CUSTOM format
+--------------------------
+When adding a new prefix mode, connector, or character type, update:
+
+1. The allowed values and related logic in this file.
+2. API config validation.
+3. The CUSTOM controls in ``ConfigPanel.jsx``.
+4. ``ToolkitPage.jsx`` if the config shape changes.
+5. Validation and generation tests.
+
+A completely new identifier family should use its own strategy file and be
+registered separately in ``registry.py``.
 """
-from .base import StrategyInterface
+
 import random
 import string
 
+from .base import StrategyInterface
+
+
 class CustomStrategy(StrategyInterface):
     """
-    Strategy for validating and generating user-defined custom identifiers.
+    Validate and generate identifiers using one custom format configuration.
 
-    One CustomStrategy instance represents one custom ID configuration selected
-    by the user. The strategy stores normalized config values on the object
-    during initialization, then uses those values later during validation and
-    generation.
+    One instance stores the normalized rules for a custom format and reuses
+    them for every identifier processed during the request.
 
-    Custom identifier format:
+    Format:
 
         <PREFIX><CONNECTOR><SUFFIX>
 
-    Example:
-
-        C3G-123456
-
-    Prefix behavior:
-    - fixed mode:
-        The prefix must exactly match fixed_prefix.
-    - random mode:
-        The prefix must match prefix_type and prefix_length.
-
-    Suffix behavior:
-    - The suffix must always match suffix_type and suffix_length.
-
-    This class should only handle the CUSTOM strategy. CPHI, CPHI modifiers,
-    UUID, and future strategies should be handled by separate strategy classes.
+    In fixed-prefix mode, every identifier must use the same prefix. In
+    random-prefix mode, the prefix is checked against the configured character
+    type and length.
     """
+
     ALLOWED_PREFIX_MODES = {
         "random",
         "fixed",
     }
+
     ALLOWED_CHAR_TYPES = {
         "alphanumeric",
         "numeric",
         "letters",
     }
+
     ALLOWED_CONNECTORS = {
         "-",
         "_",
         "",
-        "+"
+        "+",
     }
-    
+
     def __init__(
         self,
         prefix_mode: str,
@@ -112,125 +101,112 @@ class CustomStrategy(StrategyInterface):
         fixed_prefix: str | None = None,
     ):
         """
-        Create a CustomStrategy from user-provided config values.
-
-        The constructor does not validate or generate an identifier directly.
-        Instead, it prepares the strategy rules that validate() and generate()
-        will use later.
+        Create a custom strategy from the selected format options.
 
         Parameters
         ----------
         prefix_mode:
-            Determines how the prefix is handled. Supported values are
-            "fixed" and "random".
+            ``"fixed"`` to reuse one exact prefix or ``"random"`` to generate
+            and validate the prefix by character type and length.
 
         connector:
-            String placed between the prefix and suffix. Supported values are
-            "-", "_", "+", or "" for no connector.
+            Value placed between the prefix and suffix. Supported values are
+            ``"-"``, ``"_"``, ``"+"``, and an empty string.
 
         suffix_type:
-            Character type required for the suffix. Supported values are
-            "numeric", "letters", and "alphanumeric".
+            Required character type for the suffix.
 
         suffix_length:
-            Number of characters required in the suffix.
+            Required number of characters in the suffix.
 
         prefix_type:
-            Character type required for the prefix when prefix_mode is
-            "random". Supported values are "numeric", "letters", and
-            "alphanumeric".
+            Required character type for a random prefix.
 
         prefix_length:
-            Number of characters required in the prefix when prefix_mode is
-            "random".
+            Required number of characters in a random prefix.
 
         fixed_prefix:
-            Exact prefix required when prefix_mode is "fixed". This value is
-            reused during generation and checked exactly during validation.
-
-        Behavior
-        --------
-        - Normalizes prefix_mode, connector, suffix_type, and suffix_length.
-        - If prefix_mode is "fixed", normalizes fixed_prefix and calculates
-          prefix_length from the fixed prefix.
-        - If prefix_mode is "random", normalizes prefix_type and prefix_length.
-        - Stores normalized values on self for validate() and generate().
+            Exact prefix used when ``prefix_mode`` is ``"fixed"``.
 
         Raises
         ------
         ValueError
-            Raised when required config values are missing, have the wrong type,
-            or are outside the allowed options.
+            Raised when a required option is missing or invalid.
 
-        Dependency notes
-        ----------------
-        registry.py passes values into this constructor. If constructor
-        parameters or expected config key names change, update registry.py,
-        api/utils.py, App.jsx buildConfig(), and ConfigPanel.jsx.
-
+        Notes
+        -----
+        ``registry.py`` passes these values into the constructor. If a parameter
+        or config key changes here, the registry, API config validation,
+        ``ConfigPanel.jsx``, and ``ToolkitPage.jsx`` may also need updates.
         """
         self.prefix_mode = self.normalize_prefix_mode(prefix_mode)
         self.connector = self.normalize_connector(connector)
 
-        self.suffix_type = self.normalize_char_type(suffix_type, "suffix_type")
-        self.suffix_length = self.normalize_length(suffix_length, "suffix_length")
+        self.suffix_type = self.normalize_char_type(
+            suffix_type,
+            "suffix_type",
+        )
+        self.suffix_length = self.normalize_length(
+            suffix_length,
+            "suffix_length",
+        )
 
         if self.prefix_mode == "fixed":
-            self.fixed_prefix = self.normalize_fixed_prefix(fixed_prefix)
+            self.fixed_prefix = self.normalize_fixed_prefix(
+                fixed_prefix
+            )
             self.prefix_length = len(self.fixed_prefix)
             self.prefix_type = None
-
         else:
             self.fixed_prefix = None
-            self.prefix_type = self.normalize_char_type(prefix_type, "prefix_type")
-            self.prefix_length = self.normalize_length(prefix_length, "prefix_length")
-    
-    def validate(self, identifier: str, config: dict|None = None) -> dict:
+            self.prefix_type = self.normalize_char_type(
+                prefix_type,
+                "prefix_type",
+            )
+            self.prefix_length = self.normalize_length(
+                prefix_length,
+                "prefix_length",
+            )
+
+    def validate(
+        self,
+        identifier: str,
+        config: dict | None = None,
+    ) -> dict:
         """
-        Validate an existing custom identifier.
+        Validate one identifier against the stored custom format.
 
-        The identifier is validated against the normalized rules stored on this
-        CustomStrategy instance.
-
-        Expected format:
-
-            <PREFIX><CONNECTOR><SUFFIX>
-
-        Validation flow:
-        1. Check that the identifier is present.
-        2. Check that the identifier is a string.
-        3. Check the total expected length.
-        4. Split the identifier into prefix and suffix sections.
-        5. Validate the prefix against fixed or random prefix rules.
-        6. Validate the suffix against suffix type and length rules.
-        7. Return the shared validation result dictionary.
+        Validation checks:
+        - The identifier is present and is a string.
+        - The total length matches the configured format.
+        - The connector appears in the expected position.
+        - The prefix follows the fixed or random prefix rules.
+        - The suffix matches its configured character type and length.
 
         Parameters
         ----------
         identifier:
-            Identifier value to validate.
+            Custom identifier to validate.
 
         config:
-            Optional config argument kept for StrategyInterface compatibility.
-            This strategy mainly uses the normalized config values stored on
-            self during __init__.
+            Kept for compatibility with ``StrategyInterface``. This strategy
+            uses the normalized values stored during initialization.
 
         Returns
         -------
         dict
-            Validation result with the shared strategy response shape:
+            Validation result using the shared strategy shape:
 
             {
                 "valid": bool,
                 "error": str | None,
-                "message": str
+                "message": str,
             }
 
-        Dependency notes
-        ----------------
-        pipeline.py expects validate() to return the same shape across all
-        strategies. If this return shape changes, pipeline.py and frontend
-        result display components may also need updates.
+        Notes
+        -----
+        File duplicates and database conflicts are handled later by the
+        pipeline.
         """
         if identifier is None:
             return {
@@ -270,15 +246,16 @@ class CustomStrategy(StrategyInterface):
         if split_result["valid"] is False:
             return split_result
 
-        prefix = split_result["prefix"]
-        suffix = split_result["suffix"]
-
-        prefix_result = self._validate_prefix(prefix)
+        prefix_result = self._validate_prefix(
+            split_result["prefix"]
+        )
 
         if prefix_result["valid"] is False:
             return prefix_result
 
-        suffix_result = self._validate_suffix(suffix)
+        suffix_result = self._validate_suffix(
+            split_result["suffix"]
+        )
 
         if suffix_result["valid"] is False:
             return suffix_result
@@ -288,26 +265,16 @@ class CustomStrategy(StrategyInterface):
             "error": None,
             "message": "Custom identifier is valid.",
         }
-    
-    def _validate_prefix(self, prefix: str) -> dict:
+
+    def _validate_prefix(
+        self,
+        prefix: str,
+    ) -> dict:
         """
-        Validate the prefix section of a custom identifier.
+        Validate the prefix using the selected prefix mode.
 
-        Prefix validation depends on prefix_mode:
-        - fixed mode:
-            The prefix must exactly match self.fixed_prefix.
-        - random mode:
-            The prefix must match self.prefix_type and self.prefix_length.
-
-        Parameters
-        ----------
-        prefix:
-            Prefix section extracted from the full identifier.
-
-        Returns
-        -------
-        dict
-            Validation-style result containing valid, error, and message keys.
+        A fixed prefix must match exactly. A random prefix must match its
+        configured character type and length.
         """
         if len(prefix) != self.prefix_length:
             return {
@@ -336,7 +303,10 @@ class CustomStrategy(StrategyInterface):
                 "message": "Fixed prefix is valid.",
             }
 
-        if not self._matches_type(prefix, self.prefix_type):
+        if not self._matches_type(
+            prefix,
+            self.prefix_type,
+        ):
             return {
                 "valid": False,
                 "error": "Invalid prefix",
@@ -352,21 +322,12 @@ class CustomStrategy(StrategyInterface):
             "message": "Prefix is valid.",
         }
 
-    def _validate_suffix(self,suffix: str) -> dict:
+    def _validate_suffix(
+        self,
+        suffix: str,
+    ) -> dict:
         """
-        Validate the suffix section of a custom identifier.
-
-        The suffix must match the configured suffix length and character type.
-
-        Parameters
-        ----------
-        suffix:
-            Suffix section extracted from the full identifier.
-
-        Returns
-        -------
-        dict
-            Validation-style result containing valid, error, and message keys.
+        Validate the suffix character type and length.
         """
         if len(suffix) != self.suffix_length:
             return {
@@ -378,7 +339,10 @@ class CustomStrategy(StrategyInterface):
                 ),
             }
 
-        if not self._matches_type(suffix, self.suffix_type):
+        if not self._matches_type(
+            suffix,
+            self.suffix_type,
+        ):
             return {
                 "valid": False,
                 "error": "Invalid suffix",
@@ -394,37 +358,31 @@ class CustomStrategy(StrategyInterface):
             "message": "Suffix is valid.",
         }
 
-    
-    def generate(self, config: dict | None = None) -> str:
+    def generate(
+        self,
+        config: dict | None = None,
+    ) -> str:
         """
-        Generate one new custom identifier.
+        Generate one identifier using the stored custom format.
 
-        Generation uses the normalized rules stored on this CustomStrategy
-        instance.
-
-        Generation flow:
-        1. Use fixed_prefix if prefix_mode is "fixed".
-        2. Generate a random prefix if prefix_mode is "random".
-        3. Generate a suffix based on suffix_type and suffix_length.
-        4. Join prefix, connector, and suffix into one identifier string.
+        A fixed prefix is reused directly. A random prefix and the suffix are
+        generated using their configured character types and lengths.
 
         Parameters
         ----------
         config:
-            Optional config argument kept for StrategyInterface compatibility.
-            This strategy mainly uses the normalized config values stored on
-            self during __init__.
+            Kept for compatibility with ``StrategyInterface``. This strategy
+            uses the normalized values stored during initialization.
 
         Returns
         -------
         str
             Newly generated custom identifier.
 
-        Dependency notes
-        ----------------
-        This method only generates one identifier. It does not check whether
-        the generated identifier is unique across the uploaded file or database.
-        The generation pipeline handles conflict detection and regeneration.
+        Notes
+        -----
+        This method creates one candidate identifier. The generation pipeline
+        checks it against uploaded and stored identifiers.
         """
         if self.prefix_mode == "fixed":
             prefix = self.fixed_prefix
@@ -441,50 +399,24 @@ class CustomStrategy(StrategyInterface):
 
         return f"{prefix}{self.connector}{suffix}"
 
-    def _split_identifier(self, identifier: str) -> dict:
+    def _split_identifier(
+        self,
+        identifier: str,
+    ) -> dict:
         """
-        Split a full custom identifier into prefix and suffix sections.
+        Split an identifier into its prefix and suffix sections.
 
-        If the connector is empty, the identifier is split using prefix_length.
-        If the connector is not empty, the method verifies that the connector
-        appears at the expected position before splitting.
-
-        Parameters
-        ----------
-        identifier:
-            Full identifier string to split.
-
-        Returns
-        -------
-        dict
-            If the split is successful:
-
-            {
-                "valid": True,
-                "prefix": str,
-                "suffix": str
-            }
-
-            If the connector is invalid:
-
-            {
-                "valid": False,
-                "error": str,
-                "message": str
-            }
+        An empty connector uses ``prefix_length`` as the split point. A
+        non-empty connector must appear directly after the prefix.
         """
         if self.connector == "":
-            prefix = identifier[:self.prefix_length]
-            suffix = identifier[self.prefix_length:]
-
             return {
                 "valid": True,
-                "prefix": prefix,
-                "suffix": suffix,
+                "prefix": identifier[:self.prefix_length],
+                "suffix": identifier[self.prefix_length:],
             }
 
         connector_index = self.prefix_length
-
         actual_connector = identifier[connector_index]
 
         if actual_connector != self.connector:
@@ -497,20 +429,40 @@ class CustomStrategy(StrategyInterface):
                 ),
             }
 
-        prefix = identifier[:self.prefix_length]
-        suffix = identifier[connector_index + len(self.connector):]
-
         return {
             "valid": True,
-            "prefix": prefix,
-            "suffix": suffix,
+            "prefix": identifier[:self.prefix_length],
+            "suffix": identifier[
+                connector_index + len(self.connector):
+            ],
         }
 
-    def _generate_part(self, char_type: str, length: int) -> str:
-        chars = self._generation_chars_for_type(char_type)
-        return "".join(random.choices(chars, k=length))
+    def _generate_part(
+        self,
+        char_type: str,
+        length: int,
+    ) -> str:
+        """
+        Generate one random prefix or suffix section.
+        """
+        characters = self._generation_chars_for_type(
+            char_type
+        )
 
-    def _generation_chars_for_type(self, char_type: str) -> str:
+        return "".join(
+            random.choices(
+                characters,
+                k=length,
+            )
+        )
+
+    def _generation_chars_for_type(
+        self,
+        char_type: str,
+    ) -> str:
+        """
+        Return the character set used for a configured character type.
+        """
         if char_type == "numeric":
             return string.digits
 
@@ -520,42 +472,93 @@ class CustomStrategy(StrategyInterface):
         if char_type == "alphanumeric":
             return string.ascii_uppercase + string.digits
 
-        raise ValueError(f"Unsupported character type: {char_type}")
+        raise ValueError(
+            f"Unsupported character type: {char_type}"
+        )
 
-    def normalize_char_type(self, value:str, field_name: str) -> str:
-        if not isinstance(value,str):
-            raise ValueError(f"'{field_name}' provided must be a string")
+    def normalize_char_type(
+        self,
+        value: str,
+        field_name: str,
+    ) -> str:
+        """
+        Normalize and validate a prefix or suffix character type.
+        """
+        if not isinstance(value, str):
+            raise ValueError(
+                f"'{field_name}' must be a string."
+            )
+
         normalized = value.strip().lower()
 
         if normalized not in self.ALLOWED_CHAR_TYPES:
             raise ValueError(
-                f"Invalid {field_name}: '{value}'"
-                f"Allowed values: '{self.ALLOWED_CHAR_TYPES}'"
+                f"Invalid {field_name}: '{value}'. "
+                f"Allowed values: "
+                f"{sorted(self.ALLOWED_CHAR_TYPES)}."
             )
+
         return normalized
-    def normalize_length(self, value: int, field_name:str) -> int:
+
+    def normalize_length(
+        self,
+        value: int,
+        field_name: str,
+    ) -> int:
+        """
+        Convert a configured length to a positive integer.
+        """
         try:
             normalized = int(value)
-        except (TypeError,ValueError):
-            raise ValueError(f"'{field_name}' provided must be an integer.")
-        
-        if normalized <=0:
-            raise ValueError(f"'{field_name}' must be greater than 0.")
-        #Can add another check to limit the size of the int if needed
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"'{field_name}' must be an integer."
+            ) from error
+
+        if normalized <= 0:
+            raise ValueError(
+                f"'{field_name}' must be greater than 0."
+            )
+
         return normalized
-    def normalize_connector(self, value:str)->str:
+
+    def normalize_connector(
+        self,
+        value: str,
+    ) -> str:
+        """
+        Normalize and validate the connector between the two ID sections.
+
+        ``None`` and the string ``"none"`` are treated as no connector.
+        """
         if value is None:
-            value =""
-        if not isinstance(value,str):
-            raise ValueError(f"'Connector' has to be a string")
+            value = ""
+
+        if not isinstance(value, str):
+            raise ValueError(
+                "'connector' must be a string."
+            )
+
         if value == "none":
             value = ""
+
         if value not in self.ALLOWED_CONNECTORS:
             raise ValueError(
-                f"Invaldi connector '{value}'. Allowed values are '{self.ALLOWED_CONNECTORS}' or empty."
+                f"Invalid connector '{value}'. "
+                f"Allowed values: "
+                f"{sorted(self.ALLOWED_CONNECTORS)}."
             )
+
         return value
-    def _matches_type(self, value: str, char_type: str) -> bool:
+
+    def _matches_type(
+        self,
+        value: str,
+        char_type: str,
+    ) -> bool:
+        """
+        Check whether a value matches a configured character type.
+        """
         if len(value) == 0:
             return False
 
@@ -569,33 +572,59 @@ class CustomStrategy(StrategyInterface):
             return value.isalnum()
 
         return False
-    def normalize_fixed_prefix(self, value:str |None) -> str:
+
+    def normalize_fixed_prefix(
+        self,
+        value: str | None,
+    ) -> str:
+        """
+        Normalize and validate the prefix used in fixed-prefix mode.
+        """
         if value is None:
             raise ValueError(
-                f"'fixe_prefix' is required when prefix_mode is 'fixed'"
+                "'fixed_prefix' is required when "
+                "prefix_mode is 'fixed'."
             )
+
         if not isinstance(value, str):
-            raise ValueError("'fixed_prefix' must be a string.")
+            raise ValueError(
+                "'fixed_prefix' must be a string."
+            )
+
         fixed_prefix = value.strip()
-        
+
         if fixed_prefix == "":
-            raise ValueError("'fixed_prefix' cannot be empty.")
+            raise ValueError(
+                "'fixed_prefix' cannot be empty."
+            )
 
         if not fixed_prefix.isalnum():
             raise ValueError(
-                "'fixed_prefix' must contain only letters and numbers."
+                "'fixed_prefix' must contain only "
+                "letters and numbers."
             )
+
         return fixed_prefix
-    def normalize_prefix_mode(self, value: str) -> str:
-        if not isinstance(value,str):
+
+    def normalize_prefix_mode(
+        self,
+        value: str,
+    ) -> str:
+        """
+        Normalize and validate the selected prefix mode.
+        """
+        if not isinstance(value, str):
             raise ValueError(
                 "'prefix_mode' must be a string."
             )
+
         normalized = value.strip().lower()
 
         if normalized not in self.ALLOWED_PREFIX_MODES:
             raise ValueError(
-                f"Invalide prefix mode: {value}"
-                f"Allowed values: {sorted(self.ALLOWED_PREFIX_MODES)}."
+                f"Invalid prefix mode: '{value}'. "
+                f"Allowed values: "
+                f"{sorted(self.ALLOWED_PREFIX_MODES)}."
             )
+
         return normalized
