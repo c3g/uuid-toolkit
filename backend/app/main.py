@@ -1,3 +1,8 @@
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,6 +32,12 @@ if cors_origins_env:
     ]
 else:
     CORS_ORIGINS = DEFAULT_CORS_ORIGINS
+
+FRONTEND_DIST_DIR = (
+    Path(__file__).resolve().parents[2]
+    / "frontend-vite"
+    / "dist"
+)
 
 
 app = FastAPI(
@@ -120,3 +131,26 @@ app.include_router(generate_router, prefix="/api")
 app.include_router(identifiers_router,prefix="/api")
 app.include_router(database_management_router,prefix="/api")
 app.include_router(projects_router, prefix="/api")
+
+#Generic fallback
+if FRONTEND_DIST_DIR.is_dir():
+    frontend_assets_dir = FRONTEND_DIST_DIR / "assets"
+
+    if frontend_assets_dir.is_dir():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=frontend_assets_dir),
+            name="frontend-assets",
+        )
+
+    @app.get("/", include_in_schema=False)
+    def serve_frontend_root():
+        return FileResponse(
+            FRONTEND_DIST_DIR / "index.html"
+        )
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(full_path: str):
+        return FileResponse(
+            FRONTEND_DIST_DIR / "index.html"
+        )
