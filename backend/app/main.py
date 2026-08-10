@@ -9,10 +9,29 @@ from api.database_management import (
 )
 from api.projects import router as projects_router
 
+#Allows imports from env
+import os
+
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+cors_origins_env = os.getenv("CORS_ORIGINS")
+
+if cors_origins_env:
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in cors_origins_env.split(",")
+        if origin.strip()
+    ]
+else:
+    CORS_ORIGINS = DEFAULT_CORS_ORIGINS
+
 
 app = FastAPI(
     title="UUID Toolkit API",
-    description="API for validating and generating UUID/CPHI identifiers.",
+    description="API for validating, generating, and managing UUID identifiers.",
     version="0.1.0",
 )
 
@@ -21,12 +40,7 @@ app = FastAPI(
 # Later, replace these with the actual production frontend URL.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,7 +54,7 @@ def health_check() -> dict:
     """
     return {
         "status": "ok",
-        "message": "UUID / CPHI Toolkit API is running.",
+        "message": "UUID Toolkit API is running.",
     }
 
 
