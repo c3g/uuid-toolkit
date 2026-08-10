@@ -11,7 +11,7 @@ from api.projects import router as projects_router
 
 
 app = FastAPI(
-    title="UUID / CPHI Toolkit API",
+    title="UUID Toolkit API",
     description="API for validating and generating UUID/CPHI identifiers.",
     version="0.1.0",
 )
@@ -62,6 +62,8 @@ def get_options() -> dict:
         "identifier_types": [
             "UUID",
             "CPHI",
+            "PCGL",
+            "CUSTOM",
         ],
 
         "uuid_versions": [4],
@@ -71,13 +73,8 @@ def get_options() -> dict:
             "sample",
         ],
 
-        # Variant is optional.
-        # If the user chooses no variant, the backend uses base CPHI format:
-        # PROJECT-123456
-        #
-        # If the user chooses a variant, the backend uses modified CPHI format:
-        # PROJECT-123456_VARIANT_1234
-        "cphi_variants_by_entity_type": {
+        # PCGL ids follow the same format as CPHI ids for the base ID but have a variant concatenated.
+        "pcgl_variants_by_entity_type": {
             "patient": [
                 "SPE",
             ],
