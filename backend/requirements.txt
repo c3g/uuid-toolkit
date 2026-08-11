@@ -1,9 +1,7 @@
-fastapi
-uvicorn
-python-multipart
-pytest
-httpx
-openpyxl
-sqlalchemy
-psycopg[binary]
-python-dotenv
+fastapi==0.139.0
+uvicorn==0.51.0
+python-multipart==0.0.32
+openpyxl==3.1.5
+SQLAlchemy==2.0.51
+psycopg[binary]==3.3.4
+python-dotenv==1.2.2
