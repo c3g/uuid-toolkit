@@ -1,9 +1,11 @@
 from db.database import engine
-from db.models import Base
+from db.schema_management import create_all_tables
+
 
 def main() -> None:
-    Base.metadata.create_all(bind=engine)
-    print("Database tables crreated.")
+    create_all_tables(engine)
+    print("Database tables created.")
+
 
 if __name__ == "__main__":
     main()

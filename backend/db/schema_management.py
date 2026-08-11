@@ -8,7 +8,7 @@ How this file connects to the project
 - ``models.py`` defines the tables stored under ``Base.metadata``.
 - ``database.py`` provides the SQLAlchemy engine passed into these functions.
 - Setup scripts may call ``create_all_tables()`` when preparing a new database.
-- Development or admin scripts may call ``drop_all_tables()`` or
+- Development or maintenance scripts may call ``drop_all_tables()`` or
   ``reset_all_tables()``.
 
 Adding a new strategy
@@ -49,7 +49,7 @@ def drop_all_tables(
     Notes
     -----
     This deletes the tables and all data stored inside them. It should only be
-    used for development, testing, or controlled administrative cleanup.
+    used for development, testing, or controlled maintenance.
     """
     Base.metadata.drop_all(bind=engine)
 
