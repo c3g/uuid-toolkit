@@ -32,18 +32,6 @@ def test_health_endpoint():
     assert data["status"] == "ok"
 
 
-def test_options_endpoint():
-    response = client.get("/api/options")
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert "modes" in data
-    assert "identifier_types" in data
-    assert "uuid_versions" in data
-    assert "cphi_entity_types" in data
-    assert "cphi_variants_by_entity_type" in data
 
 
 def test_uuid_generate_endpoint():

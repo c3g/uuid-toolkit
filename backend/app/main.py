@@ -3,7 +3,11 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+
+from sqlalchemy import text
+from db.database import engine
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.validate import router as validate_router
@@ -16,6 +20,9 @@ from api.projects import router as projects_router
 
 #Allows imports from env
 import os
+
+#Logging import
+import logging
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
@@ -38,6 +45,8 @@ FRONTEND_DIST_DIR = (
     / "frontend-vite"
     / "dist"
 )
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -67,57 +76,23 @@ def health_check() -> dict:
         "status": "ok",
         "message": "UUID Toolkit API is running.",
     }
+#Checking that the database is available and ready to accept connections.
+@app.get("/api/ready")
+def readiness_check():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Database readiness check failed.")
+        
+        raise HTTPException(
+            status_code=503,
+            detail="Database is unavailable.",
+        )
 
-
-@app.get("/api/options")
-def get_options() -> dict:
-    """
-    Provides frontend dropdown options.
-
-    The frontend can use this to dynamically show:
-    - available modes
-    - available identifier schemas
-    - UUID versions
-    - CPHI entity types
-    - allowed CPHI variants depending on patient/sample type
-    """
     return {
-        "modes": ["validate", "generate"],
-
-        "identifier_types": [
-            "UUID",
-            "CPHI",
-            "PCGL",
-            "CUSTOM",
-        ],
-
-        "uuid_versions": [4],
-
-        "cphi_entity_types": [
-            "patient",
-            "sample",
-        ],
-
-        # PCGL ids follow the same format as CPHI ids for the base ID but have a variant concatenated.
-        "pcgl_variants_by_entity_type": {
-            "patient": [
-                "SPE",
-            ],
-            "sample": [
-                "EXP",
-                "RG",
-                "ANA",
-                "LIB",
-                "WRK",
-            ],
-        },
-
-        "supported_file_extensions": [
-            ".csv",
-            ".json",
-        ],
-
-        "default_output_id_field": "identifier",
+        "status": "ready",
+        "message": "UUID Toolkit API is ready.",
     }
 
 
@@ -151,6 +126,12 @@ if FRONTEND_DIST_DIR.is_dir():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_frontend(full_path: str):
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(
+                status_code=404,
+                detail="API endpoint not found.",
+            )
+
         return FileResponse(
             FRONTEND_DIST_DIR / "index.html"
         )
