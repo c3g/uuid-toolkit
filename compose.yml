@@ -1,0 +1,76 @@
+services:
+  uuid-postgres:
+    image: docker.io/library/postgres:17
+
+    env_file:
+      - .env.podman-test
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  db-init:
+    build:
+      context: .
+      dockerfile: Containerfile
+
+    image: localhost/uuid-toolkit:compose
+
+    env_file:
+      - .env.podman-test
+
+    command:
+      [
+        "python",
+        "-m",
+        "scripts.create_tables",
+      ]
+
+    depends_on:
+      uuid-postgres:
+        condition: service_healthy
+
+
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+
+    image: localhost/uuid-toolkit:compose
+
+    env_file:
+      - .env.podman-test
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+
+volumes:
+  pgdata:
