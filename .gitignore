@@ -1,17 +1,23 @@
-@"
 # Python
 __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
 venv/
+# Python virtual environments
+.venv*/
+venv*/
+
 
 # Environment files
 .env
+.env.*
+!.env.example
 
 # Frontend
 node_modules/
 dist/
+frontend-vite/src/components_archive/
 
 # OS / editor
 .DS_Store
@@ -19,9 +25,3 @@ dist/
 
 # Old Git backup
 .git-backup/
-"@ | Out-File -Encoding utf8 .gitignore
-
-frontend-vite/src/components_archive/
-
-#env files
-.env

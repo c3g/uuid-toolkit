@@ -116,33 +116,20 @@ function ToolkitPage() {
     )
   );
 
-  /* Reset old results when user changes configuration */
-  useEffect(() => {
-    if (result) {
-      setResult(null);
-      setError("");
-    }
+  /*
+  * Clear results from the previous run before changing
+  * a setting that affects validation or generation.
+  */
+  function updateConfiguration(
+    stateSetter,
+    newValue
+  ) {
+    setResult(null);
+    setError("");
     setSaveResult(null);
-  }, [
-    mode,
-    entity_type,
-    strategy,
-    projectId,
-    project_code,
-    variant,
-    variants,
-    idColumn,
-    outIdColumn,
-    uuidVersion,
-    sheetName,
-    customPrefixType,
-    customPrefixMode,
-    customPrefixLength,
-    customFixedPrefix,
-    customConnector,
-    customSuffixType,
-    customSuffixLength,
-  ]);
+
+    stateSetter(newValue);
+  }
 
   /*Loading the projects for each strategy whenever strategy changes */
   useEffect(() => {
@@ -150,7 +137,6 @@ function ToolkitPage() {
 
     async function loadProjects() {
         setProjectsLoading(true);
-        setProjectId("");
 
         try {
 
@@ -174,15 +160,22 @@ function ToolkitPage() {
 
     if (strategy) {
         loadProjects();
-    } else {
-        setProjects([]);
-        setProjectId("");
-    }
+    } 
 
     return () => {
         cancelled = true;
     };
   }, [strategy]);
+
+  function handleStrategyChange(newStrategy) {
+    setProjects([]);
+    setProjectId("");
+
+    updateConfiguration(
+      setStrategy,
+      newStrategy
+    );
+  }
 
   /*Database Helpers */
 
@@ -269,7 +262,7 @@ function ToolkitPage() {
         )
         );
 
-        setProjectId(String(data.id));
+        updateConfiguration(setProjectId, String(data.id));
         setShowCreateProjectModal(false);
     } catch (error) {
         setProjectCreateError(
@@ -620,7 +613,10 @@ function ToolkitPage() {
     };
   }
   function removeInternalDownloadFields(row) {
-    const { id_field, ...cleanRow } = row;
+    const cleanRow = { ...row };
+
+    delete cleanRow.id_field;
+
     return cleanRow;
   }
 
@@ -712,49 +708,153 @@ function ToolkitPage() {
         onSubmit={handleSubmit}
         >
         <ConfigPanel
-            mode={mode}
-            setMode={setMode}
-            strategy={strategy}
-            setStrategy={setStrategy}
+          mode={mode}
+          setMode={(value) =>
+            updateConfiguration(
+              setMode,
+              value
+            )
+          }
 
-            projects={projects}
-            projectId={projectId}
-            setProjectId={setProjectId}
-            projectsLoading={projectsLoading}
-            openCreateProjectModal={openCreateProjectModal}
+          strategy={strategy}
+          setStrategy={handleStrategyChange}
 
-            entity_type={entity_type}
-            setEntity_type={setEntity_type}
-            project_code={project_code}
-            setProject_code={setProject_code}
-            variant={variant}
-            setVariant={setVariant}
-            variants={variants}
-            setVariants={setVariants}
+          projects={projects}
+          projectId={projectId}
+          setProjectId={(value) =>
+            updateConfiguration(
+              setProjectId,
+              value
+            )
+          }
+          projectsLoading={projectsLoading}
+          openCreateProjectModal={
+            openCreateProjectModal
+          }
 
-            idColumn={idColumn}
-            setIdColumn={setIdColumn}
-            outIdColumn={outIdColumn}
-            setOutIdColumn={setOutIdColumn}
-            uuidVersion={uuidVersion}
-            setUuidVersion={setUuidVersion}
-            sheetName={sheetName}
-            setSheetName={setSheetName}
+          entity_type={entity_type}
+          setEntity_type={(value) =>
+            updateConfiguration(
+              setEntity_type,
+              value
+            )
+          }
 
-            customPrefixMode={customPrefixMode}
-            setCustomPrefixMode={setCustomPrefixMode}
-            customPrefixType={customPrefixType}
-            setCustomPrefixType={setCustomPrefixType}
-            customPrefixLength={customPrefixLength}
-            setCustomPrefixLength={setCustomPrefixLength}
-            customFixedPrefix={customFixedPrefix}
-            setCustomFixedPrefix={setCustomFixedPrefix}
-            customConnector={customConnector}
-            setCustomConnector={setCustomConnector}
-            customSuffixType={customSuffixType}
-            setCustomSuffixType={setCustomSuffixType}
-            customSuffixLength={customSuffixLength}
-            setCustomSuffixLength={setCustomSuffixLength}
+          project_code={project_code}
+          setProject_code={(value) =>
+            updateConfiguration(
+              setProject_code,
+              value
+            )
+          }
+
+          variant={variant}
+          setVariant={(value) =>
+            updateConfiguration(
+              setVariant,
+              value
+            )
+          }
+
+          variants={variants}
+          setVariants={(value) =>
+            updateConfiguration(
+              setVariants,
+              value
+            )
+          }
+
+          idColumn={idColumn}
+          setIdColumn={(value) =>
+            updateConfiguration(
+              setIdColumn,
+              value
+            )
+          }
+
+          outIdColumn={outIdColumn}
+          setOutIdColumn={(value) =>
+            updateConfiguration(
+              setOutIdColumn,
+              value
+            )
+          }
+
+          uuidVersion={uuidVersion}
+          setUuidVersion={(value) =>
+            updateConfiguration(
+              setUuidVersion,
+              value
+            )
+          }
+
+          sheetName={sheetName}
+          setSheetName={(value) =>
+            updateConfiguration(
+              setSheetName,
+              value
+            )
+          }
+
+          customPrefixMode={customPrefixMode}
+          setCustomPrefixMode={(value) =>
+            updateConfiguration(
+              setCustomPrefixMode,
+              value
+            )
+          }
+
+          customPrefixType={customPrefixType}
+          setCustomPrefixType={(value) =>
+            updateConfiguration(
+              setCustomPrefixType,
+              value
+            )
+          }
+
+          customPrefixLength={
+            customPrefixLength
+          }
+          setCustomPrefixLength={(value) =>
+            updateConfiguration(
+              setCustomPrefixLength,
+              value
+            )
+          }
+
+          customFixedPrefix={customFixedPrefix}
+          setCustomFixedPrefix={(value) =>
+            updateConfiguration(
+              setCustomFixedPrefix,
+              value
+            )
+          }
+
+          customConnector={customConnector}
+          setCustomConnector={(value) =>
+            updateConfiguration(
+              setCustomConnector,
+              value
+            )
+          }
+
+          customSuffixType={customSuffixType}
+          setCustomSuffixType={(value) =>
+            updateConfiguration(
+              setCustomSuffixType,
+              value
+            )
+          }
+
+          customSuffixLength={
+            customSuffixLength
+          }
+          setCustomSuffixLength={(value) =>
+            updateConfiguration(
+              setCustomSuffixLength,
+              value
+            )
+          }
         />
 
         <UploadPanel

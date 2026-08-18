@@ -764,6 +764,7 @@ function DatabaseManagementPage() {
                   </option>
                 )
               )}
+              
             </select>
           </label>
 
@@ -789,7 +790,7 @@ function DatabaseManagementPage() {
                     key={project.id}
                     value={project.id}
                   >
-                    {project.name}
+                    {project.name} - {project.strategy_name}
                   </option>
                 )
               )}

@@ -2,10 +2,6 @@ import { NavLink } from "react-router-dom";
 
 import favicon from "../assets/c3g_favicon.png";
 
-/*Insert your own API base URL into the .env file once out of development */
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://127.0.0.1:8000";
 
 function Sidebar() {
   function getNavLinkClass({ isActive }) {
@@ -66,7 +62,7 @@ function Sidebar() {
 
           <a
             className="sidebar-nav-link"
-            href={`${API_BASE_URL}/docs`}
+            href="/docs"
             target="_blank"
             rel="noreferrer"
           >

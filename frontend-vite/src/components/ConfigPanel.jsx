@@ -249,18 +249,11 @@ function ConfigPanel({
                                     }}
                                 >
                             <option value="">Select a Project Code</option>
-                            <option value="NRGI">NRGI</option>
-                            <option value="C4RE">C4RE</option>
-                            <option value="GSCD">GSCD</option>
-                            <option value="GEPM">GEPM</option>
-                            <option value="LDPP">LDPP</option>
-                            <option value="EPCC">EPCC</option>
-                            <option value="INFA">INFA</option>
-                            <option value="MOSA">MOSA</option>
-                            <option value="CS4C">CS4C</option>
-                            <option value="PHNN">PHNN</option>
-                            <option value="PGEM">PGEM</option>
-                            <option value="G4PR">G4PR</option>
+                            {projectCodes.map((projectCode) => (
+                                <option key={projectCode} value={projectCode}>
+                                    {projectCode}
+                                </option>
+                            ))}
                         </select>
                     </label>
 
@@ -314,18 +307,11 @@ function ConfigPanel({
                                 }}
                             >
                                 <option value="">Select a Project Code</option>
-                                <option value="NRGI">NRGI</option>
-                                <option value="C4RE">C4RE</option>
-                                <option value="GSCD">GSCD</option>
-                                <option value="GEPM">GEPM</option>
-                                <option value="LDPP">LDPP</option>
-                                <option value="EPCC">EPCC</option>
-                                <option value="INFA">INFA</option>
-                                <option value="MOSA">MOSA</option>
-                                <option value="CS4C">CS4C</option>
-                                <option value="PHNN">PHNN</option>
-                                <option value="PGEM">PGEM</option>
-                                <option value="G4PR">G4PR</option>
+                                {projectCodes.map((projectCode) => (
+                                    <option key={projectCode} value={projectCode}>
+                                        {projectCode}
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         {showPcglEntityType &&(
