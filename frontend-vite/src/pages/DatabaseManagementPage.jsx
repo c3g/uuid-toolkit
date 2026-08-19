@@ -270,17 +270,6 @@ function DatabaseManagementPage() {
     ]
   );
 
-  /*Show only project tags that can be deleted*/
-  const deletableProjects = useMemo(
-    () =>
-      projects.filter(
-        (project) =>
-          project.name
-            ?.trim()
-            .toLowerCase() !== "unassigned"
-      ),
-    [projects]
-  );
 
   /*
    * Build strategy options from the Project Tags.
