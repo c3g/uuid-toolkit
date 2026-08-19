@@ -5,7 +5,6 @@ import ResultPanel from "../components/ResultPanel.jsx";
 import ErrorPanel from "../components/ErrorPanel.jsx";
 import EmptyResultState from "../components/EmptyResultState.jsx";
 import RunConfirmationModal from "../components/RunConfirmationModal.jsx";
-import CreateProjectModal from "../components/CreateProjectModal.jsx";
 import "../App.css";
 
 import {
@@ -13,7 +12,6 @@ import {
 } from "../services/apiClient.js";
 
 import {
-    createProject as createProjectRequest,
     fetchProjects,
 } from "../services/projectsApi.js";
 
@@ -67,27 +65,16 @@ function ToolkitPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveResult, setSaveResult] = useState(null);
 
-  /* Project creation modal state */
-  const [
-    showCreateProjectModal,
-    setShowCreateProjectModal,
-  ] = useState(false);
-
-  const [
-    projectCreateLoading,
-    setProjectCreateLoading,
-  ] = useState(false);
-
-  const [
-    projectCreateError,
-    setProjectCreateError,
-  ] = useState("");
 
   /* Derived values */
   const outIdName = outIdColumn.trim() || idColumn.trim() || "identifier";
 
   const resultRows = result?.results || [];
   const cleanRows = resultRows.filter((row) => row.valid === true);
+  const incorrectRows =
+  resultRows.filter(
+    (row) => row.valid === false
+  );
   const visible_rows = resultRows.slice(0, MAX_VISIBLE_ROWS);
 
   /*Derived values for database */
@@ -226,68 +213,6 @@ function ToolkitPage() {
 
         return Array.from(identifiers);
     }
-
-    /*Create project request helpers */
-
-    async function handleCreateProject({
-        name,
-        description,
-    }) {
-    try {
-        setProjectCreateLoading(true);
-        setProjectCreateError("");
-
-        const data =
-        await createProjectRequest({
-            name,
-            strategyName: strategy,
-            description,
-        });
-
-        setProjects((currentProjects) =>
-        [
-            ...currentProjects.filter(
-            (project) =>
-                project.id !== data.id
-            ),
-            data,
-        ].sort(
-            (
-            firstProject,
-            secondProject
-            ) =>
-            firstProject.name.localeCompare(
-                secondProject.name
-            )
-        )
-        );
-
-        updateConfiguration(setProjectId, String(data.id));
-        setShowCreateProjectModal(false);
-    } catch (error) {
-        setProjectCreateError(
-        error instanceof Error
-            ? error.message
-            : "The project could not be created."
-        );
-    } finally {
-        setProjectCreateLoading(false);
-    }
-    }
-
-  function openCreateProjectModal() {
-    setProjectCreateError("");
-    setShowCreateProjectModal(true);
-  }
-
-  function closeCreateProjectModal() {
-    if (projectCreateLoading) {
-      return;
-    }
-
-    setProjectCreateError("");
-    setShowCreateProjectModal(false);
-  }
 
   /* File helpers */
   function getFileType(filename) {
@@ -652,6 +577,8 @@ function ToolkitPage() {
     return csvLines.join("\n");
   }
 
+  /* Download handlers */
+
   function downloadCsv(rows, filename, shouldFlatten = true) {
     const csvString = convertRowsToCsv(rows, shouldFlatten);
 
@@ -691,6 +618,13 @@ function ToolkitPage() {
 
     downloadCsv(cleanRows, "clean_rows.csv", true);
   }
+  function downloadIncorrectRows() {
+  downloadCsv(
+    incorrectRows,
+    "incorrect_rows.csv",
+    true
+  );
+}
 
   return (
     <>
@@ -728,9 +662,7 @@ function ToolkitPage() {
             )
           }
           projectsLoading={projectsLoading}
-          openCreateProjectModal={
-            openCreateProjectModal
-          }
+          
 
           entity_type={entity_type}
           setEntity_type={(value) =>
@@ -881,6 +813,7 @@ function ToolkitPage() {
             maxVisibleRows={MAX_VISIBLE_ROWS}
             downloadAllRows={downloadAllRows}
             downloadCleanRows={downloadCleanRows}
+            downloadIncorrectRows={downloadIncorrectRows}
 
             saveCleanIdentifiers={saveCleanIdentifiers}
             saveLoading={saveLoading}
@@ -893,15 +826,6 @@ function ToolkitPage() {
         ) : (
         <EmptyResultState />
         )}
-
-        <CreateProjectModal
-        isOpen={showCreateProjectModal}
-        strategy={strategy}
-        loading={projectCreateLoading}
-        error={projectCreateError}
-        onClose={closeCreateProjectModal}
-        onSubmit={handleCreateProject}
-        />
 
         <RunConfirmationModal
         isOpen={showRunConfirmation}

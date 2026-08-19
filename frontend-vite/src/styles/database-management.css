@@ -231,6 +231,8 @@ Identifier table
   overflow-x: auto;
   overflow-y: auto;
   max-height: 600px;
+  width: 100%;
+  max-width: 100%;
 
   border: 1px solid
     var(--border-light, #dbe3ef);
@@ -542,5 +544,100 @@ Danger zone
   .database-delete-button,
   .database-danger-button {
     width: 100%;
+  }
+}
+
+/* =========================
+   Project Tag Management
+   ========================= */
+
+.project-management-panel {
+  margin-top: 24px;
+}
+
+.project-management-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.project-create-section,
+.project-list-section {
+  min-width: 0;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.project-create-section h3,
+.project-list-section h3 {
+  margin-top: 0;
+}
+
+.project-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-create-form textarea {
+  width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.database-primary-button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+
+  background: #155bd7;
+  color: white;
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.database-primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-delete-button {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 7px 12px;
+
+  background: #fff1f2;
+  color: #b91c1c;
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.project-delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.system-project-label {
+  display: inline-block;
+
+  padding: 5px 9px;
+  border-radius: 999px;
+
+  background: #f1f5f9;
+  color: #64748b;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+  .project-management-grid {
+    grid-template-columns: 1fr;
   }
 }

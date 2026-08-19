@@ -7,10 +7,19 @@ import missingIcon from "../assets/icons/missing.svg";
 import existingIcon from "../assets/icons/existing.svg";
 import generatedIcon from "../assets/icons/generated.svg"
 
-function SummaryCard({ className, icon, alt, label, value }) {
-
+function SummaryCard({
+    className,
+    icon,
+    alt,
+    label,
+    value,
+    tooltip,
+}) {
     return (
-        <div className={`summary-card ${className}`}>
+        <div
+            className={`summary-card ${className}`}
+            tabIndex={tooltip ? 0 : undefined}
+        >
             <div className="summary-icon">
                 <img src={icon} alt={alt} />
             </div>
@@ -19,6 +28,12 @@ function SummaryCard({ className, icon, alt, label, value }) {
                 <strong>{label}</strong>
                 <p>{value ?? 0}</p>
             </div>
+
+            {tooltip && (
+                <div className="summary-tooltip" role="tooltip">
+                    {tooltip}
+                </div>
+            )}
         </div>
     );
 }
@@ -66,6 +81,7 @@ function SummaryCards({ summary, mode, generationMode }) {
                     value={
                         summary.database_hard_conflict_count
                     }
+                    tooltip="These identifiers already exist in the database within the selected comparison scope. Review the conflicting IDs before attempting to add them to the database."
                     />
 
                     <SummaryCard
@@ -76,6 +92,7 @@ function SummaryCards({ summary, mode, generationMode }) {
                     value={
                         summary.database_soft_warning_count
                     }
+                    tooltip="These identifiers already exist elsewhere in the database, but outside the selected comparison scope. They are shown as warnings and do not make the row invalid."
                     />
                 </>
                 )}
@@ -96,6 +113,15 @@ function SummaryCards({ summary, mode, generationMode }) {
                         alt="Invalid rows icon"
                         label="Invalid Rows:"
                         value={summary.invalid_count}
+                    />
+
+                    <SummaryCard
+                        className="format-errors"
+                        icon={invalidIcon}
+                        alt="Format errors icon"
+                        label="Format Errors:"
+                        value={summary.format_error_count}
+                        tooltip="These identifiers don't match the required format for the selected strategy. Download the incorrect IDs, correct their format, then upload and run it again."
                     />
 
                     <SummaryCard
@@ -159,11 +185,21 @@ function SummaryCards({ summary, mode, generationMode }) {
                     />
 
                     <SummaryCard
+                        className="format-errors"
+                        icon={invalidIcon}
+                        alt="Format errors icon"
+                        label="Format Errors:"
+                        value={summary.format_error_count}
+                        tooltip="These identifiers don't match the required format for the selected strategy. Download the incorrect IDs, correct their format, then upload and run it again."
+                    />
+
+                    <SummaryCard
                     className="duplicated-rows"
                     icon={duplicateIcon}
                     alt="Duplicated existing IDs icon"
                     label="Duplicated Existing IDs:"
                     value={summary.duplicate_count}
+                    tooltip="These existing identifiers appear more than once within the uploaded file. Review and correct the duplicated rows before running generation again."
                     />
 
                     <SummaryCard
@@ -203,11 +239,12 @@ function SummaryCards({ summary, mode, generationMode }) {
                     />
 
                     <SummaryCard
-                    className="invalid-rows"
-                    icon={invalidIcon}
-                    alt="Invalid source IDs icon"
-                    label="Invalid Base IDs:"
-                    value={summary.source_invalid_count}
+                        className="format-errors"
+                        icon={invalidIcon}
+                        alt="Format errors icon"
+                        label="Format Errors:"
+                        value={summary.source_invalid_count}
+                        tooltip="These identifiers don't match the required format for the selected strategy. Download the incorrect IDs, correct their format, then upload and run it again."
                     />
 
                     <SummaryCard
@@ -216,6 +253,7 @@ function SummaryCards({ summary, mode, generationMode }) {
                     alt="Duplicate source IDs icon"
                     label="Duplicate Base IDs:"
                     value={summary.duplicate_source_count}
+                    tooltip="These base identifiers appear more than once within the uploaded file. Review and correct the duplicated base ID rows before generating derived identifiers again."
                     />
 
                     <SummaryCard

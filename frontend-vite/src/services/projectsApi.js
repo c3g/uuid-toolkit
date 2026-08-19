@@ -56,3 +56,14 @@ export function createProject({
     }
   );
 }
+
+export function deleteProject(
+    projectId
+) {
+    return apiRequest(
+        `/api/database-management/projects/${projectId}?confirm=true`,
+        {
+            method: "DELETE",
+        }
+    );
+}

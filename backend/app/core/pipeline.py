@@ -39,6 +39,9 @@ def run_validation_pipeline(
     results = []
     identifier_to_rows: dict[str, list[int]] = {}
 
+    #Counting the number of format errors
+    format_error_count = 0
+
     # Pass 1: structural validation
     for record in normalized:
         raw_result = strategy.validate(
@@ -47,6 +50,9 @@ def run_validation_pipeline(
         )
 
         result = enforce_validation_result(raw_result)
+
+        if result["valid"] is False:
+            format_error_count += 1
 
         result["message"] = add_warnings_to_message(result["message"],record.get("warnings",[]),)
 
@@ -113,6 +119,7 @@ def run_validation_pipeline(
             "total_rows": len(results),
             "valid_count": valid_count,
             "invalid_count": invalid_count,
+            "format_error_count": format_error_count,
             "duplicate_count": duplicate_count,
             "clean_count": len(clean_records),
         },
@@ -443,6 +450,7 @@ def run_fill_missing_generation(
     duplicate_count = 0
     error_count = 0
     generation_conflict_count = 0
+    format_error_count = 0
 
     existing_valid_count = 0
     existing_invalid_count = 0
@@ -464,6 +472,7 @@ def run_fill_missing_generation(
             if validation_result["valid"] is False:
                 error_count += 1
                 existing_invalid_count += 1
+                format_error_count += 1
 
                 updated_row[target_id_field] = existing_identifier
 
@@ -591,7 +600,8 @@ def run_fill_missing_generation(
 
             "existing_valid_count": existing_valid_count,
             "existing_invalid_count": existing_invalid_count,
-            
+
+            "format_error_count": format_error_count,
             "skipped_count": skipped_count,
             "duplicate_count": duplicate_count,
             "generation_conflict_count": generation_conflict_count,

@@ -8,7 +8,6 @@ function ConfigPanel({
     projectId,
     setProjectId,
     projectsLoading,
-    openCreateProjectModal,  
 
     entity_type,
     setEntity_type,
@@ -192,19 +191,6 @@ function ConfigPanel({
                         ))}
                     </select>
                 </label>
-                <div className="project-tag-actions">
-                    <button
-                        type="button"
-                        className="new-project-button"
-                        onClick={openCreateProjectModal}
-                        disabled={
-                            projectsLoading ||
-                            !strategy
-                        }
-                    >
-                        + New Project
-                    </button>
-                </div>
                 <p className="field-help">
                     No Project Tag checks for conflicts across the complete strategy.
                 </p>

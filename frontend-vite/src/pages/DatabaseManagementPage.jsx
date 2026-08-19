@@ -14,10 +14,19 @@ import {
 } from "../services/identifiersApi.js";
 
 import {
+  createProject,
+  deleteProject,
   fetchProjects,
 } from "../services/projectsApi.js";
 
 import "../styles/database-management.css";
+
+const PROJECT_STRATEGIES = [
+  "UUID",
+  "CPHI",
+  "PCGL",
+  "CUSTOM",
+];
 
 function DatabaseManagementPage() {
   /* Data returned by the backend */
@@ -26,6 +35,26 @@ function DatabaseManagementPage() {
 
   const [projects, setProjects] =
     useState([]);
+  /* Project Tag creation */
+  const [
+    newProjectStrategy,
+    setNewProjectStrategy,
+  ] = useState("CPHI");
+
+  const [
+    newProjectName,
+    setNewProjectName,
+  ] = useState("");
+
+  const [
+    newProjectDescription,
+    setNewProjectDescription,
+  ] = useState("");
+
+  const [
+    projectCreateLoading,
+    setProjectCreateLoading,
+  ] = useState(false);
 
   /* User-selected filters */
   const [
@@ -239,6 +268,18 @@ function DatabaseManagementPage() {
       projects,
       strategyFilter,
     ]
+  );
+
+  /*Show only project tags that can be deleted*/
+  const deletableProjects = useMemo(
+    () =>
+      projects.filter(
+        (project) =>
+          project.name
+            ?.trim()
+            .toLowerCase() !== "unassigned"
+      ),
+    [projects]
   );
 
   /*
@@ -455,14 +496,66 @@ function DatabaseManagementPage() {
     }
 
     function clearDeleteInputs() {
-        setDeleteRowId("");
-        setDeleteIdentifierValue("");
-        setDeleteIdentifierProjectId("");
-        setDeleteProjectId("");
-        setDeleteStrategyName("");
+      setDeleteRowId("");
+      setDeleteIdentifierValue("");
+      setDeleteIdentifierProjectId("");
+      setDeleteProjectId("");
+      setDeleteStrategyName("");
+    }
+
+    async function handleCreateProject(event) {
+        event.preventDefault();
+
+        setError("");
+        setSuccessMessage("");
+
+        const cleanedName =
+            newProjectName.trim();
+
+        if (!cleanedName) {
+            setError(
+                "Please enter a Project Tag name."
+            );
+            return;
         }
 
-        async function handleDeleteSubmit(event) {
+        try {
+            setProjectCreateLoading(true);
+
+            const createdProject =
+                await createProject({
+                    name: cleanedName,
+                    strategyName:
+                        newProjectStrategy,
+                    description:
+                        newProjectDescription.trim(),
+                });
+
+            setProjects(
+                (currentProjects) => [
+                    ...currentProjects,
+                    createdProject,
+                ]
+            );
+
+            setNewProjectName("");
+            setNewProjectDescription("");
+
+            setSuccessMessage(
+                `Project Tag '${createdProject.name}' created successfully.`
+            );
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : "The Project Tag could not be created."
+            );
+        } finally {
+            setProjectCreateLoading(false);
+        }
+    }
+
+    async function handleDeleteSubmit(event) {
         event.preventDefault();
 
         setError("");
@@ -623,6 +716,80 @@ function DatabaseManagementPage() {
             setDeleteLoading(false);
         }
     }
+
+    async function handleDeleteProject(projectId) {
+        setError("");
+        setSuccessMessage("");
+
+        const selectedProject = projects.find(
+            (project) =>
+                String(project.id) === String(projectId)
+        );
+
+        if (!selectedProject) {
+            setError(
+                "The selected Project Tag could not be found."
+            );
+            return;
+        }
+
+        if (
+            selectedProject.name
+                ?.trim()
+                .toLowerCase() === "unassigned"
+        ) {
+            setError(
+                "The Unassigned Project Tag is system-managed and cannot be deleted."
+            );
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Delete Project Tag '${selectedProject.name}'? ` +
+            "All identifiers belonging to this Project Tag will also be deleted."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeleteLoading(true);
+
+            const data = await deleteProject(
+                projectId
+            );
+
+            setSuccessMessage(
+                `Project Tag '${selectedProject.name}' deleted successfully. ` +
+                `${data.identifiers_deleted} identifier${
+                    data.identifiers_deleted === 1
+                        ? ""
+                        : "s"
+                } were also deleted.`
+            );
+
+            setProjects((currentProjects) =>
+                currentProjects.filter(
+                    (project) =>
+                        String(project.id) !==
+                        String(projectId)
+                )
+            );
+
+            refreshIdentifiers();
+
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : "The Project Tag could not be deleted."
+            );
+        } finally {
+            setDeleteLoading(false);
+        }
+    }
+
     async function handleClearAllIdentifiers() {
         setError("");
         setSuccessMessage("");
@@ -924,6 +1091,176 @@ function DatabaseManagementPage() {
             </table>
           </div>
         )}
+
+        <section className="database-panel project-management-panel">
+          <div className="database-panel-heading">
+            <div>
+              <h2>Manage Project Tags</h2>
+
+              <p>
+                Create Project Tags or remove existing
+                Project Tags from the database.
+              </p>
+            </div>
+          </div>
+
+          <div className="project-management-grid">
+
+            {/* Create Project Tag */}
+            <div className="project-create-section">
+              <h3>Create Project Tag</h3>
+
+              <form
+                className="project-create-form"
+                onSubmit={handleCreateProject}
+              >
+                <label className="database-filter-field">
+                  <span>Strategy</span>
+
+                  <select
+                    value={newProjectStrategy}
+                    onChange={(event) =>
+                      setNewProjectStrategy(
+                        event.target.value
+                      )
+                    }
+                  >
+                    {PROJECT_STRATEGIES.map(
+                      (strategyName) => (
+                        <option
+                          key={strategyName}
+                          value={strategyName}
+                        >
+                          {strategyName}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </label>
+
+                <label className="database-filter-field">
+                  <span>Project Tag Name</span>
+
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(event) =>
+                      setNewProjectName(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Example: Brain Tumour Study"
+                  />
+                </label>
+
+                <label className="database-filter-field">
+                  <span>Description — optional</span>
+
+                  <textarea
+                    value={newProjectDescription}
+                    onChange={(event) =>
+                      setNewProjectDescription(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Optional project description"
+                    rows="4"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  className="database-primary-button"
+                  disabled={
+                    projectCreateLoading ||
+                    newProjectName.trim() === ""
+                  }
+                >
+                  {projectCreateLoading
+                    ? "Creating..."
+                    : "Create Project Tag"}
+                </button>
+              </form>
+            </div>
+
+            {/* Existing Project Tags */}
+            <div className="project-list-section">
+              <h3>Existing Project Tags</h3>
+
+              {projectsLoading ? (
+                <p className="database-state-message">
+                  Loading Project Tags...
+                </p>
+              ) : projects.length === 0 ? (
+                <p className="database-state-message">
+                  No Project Tags currently exist.
+                </p>
+              ) : (
+                <div className="database-table-wrapper">
+                  <table className="database-table project-table">
+                    <thead>
+                      <tr>
+                        <th>Project Tag</th>
+                        <th>Strategy</th>
+                        <th>Description</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {projects.map((project) => {
+                        const isUnassigned =
+                          project.name
+                            ?.trim()
+                            .toLowerCase() ===
+                          "unassigned";
+
+                        return (
+                          <tr key={project.id}>
+                            <td>{project.name}</td>
+
+                            <td>
+                              <span className="strategy-badge">
+                                {project.strategy_name}
+                              </span>
+                            </td>
+
+                            <td>
+                              {project.description ||
+                                "—"}
+                            </td>
+
+                            <td>
+                              {isUnassigned ? (
+                                <span className="system-project-label">
+                                  System
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="project-delete-button"
+                                  onClick={() =>
+                                    handleDeleteProject(
+                                      project.id
+                                    )
+                                  }
+                                  disabled={deleteLoading}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </section>
 
         <section className="database-panel database-delete-panel">
             <div className="database-panel-heading">
