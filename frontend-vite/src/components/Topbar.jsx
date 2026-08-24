@@ -7,7 +7,7 @@ function Topbar(){
     return(
         <header className="topbar">
             <div>
-                <strong>UUID Toolkit / Dashboard</strong>
+                <strong>UUIDinator / Dashboard</strong>
             </div>
 
             <div className="topbar-user">
