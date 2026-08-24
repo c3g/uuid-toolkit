@@ -13,6 +13,7 @@ function ResultPanel({
     maxVisibleRows,
     downloadAllRows,
     downloadCleanRows,
+    downloadIncorrectRows,
 
     saveCleanIdentifiers,
     saveLoading,
@@ -28,6 +29,7 @@ function ResultPanel({
             <DownloadActions
                 downloadAllRows={downloadAllRows}
                 downloadCleanRows={downloadCleanRows}
+                downloadIncorrectRows={downloadIncorrectRows}
                 saveCleanIdentifiers={saveCleanIdentifiers}
                 saveLoading={saveLoading}
                 saveCompleted={saveResult!==null}

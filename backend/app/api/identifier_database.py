@@ -35,6 +35,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from api.utils import normalize_strategy_name
+from core.auth_dependencies import require_admin, require_authenticated_user
 from db.database import get_db_session
 from db.identifier_repository import (
     find_project_conflicts,
@@ -70,6 +71,7 @@ def get_identifiers(
     project_id: int | None = None,
     strategy_name: str | None = None,
     session: Session = Depends(get_db_session),
+    _admin=Depends(require_admin),
 ) -> list[dict]:
     """
     Return stored identifiers using an optional project or strategy filter.
@@ -127,6 +129,7 @@ def get_identifiers(
 def save_clean_identifiers(
     request: SaveIdentifierRequest,
     session: Session = Depends(get_db_session),
+    _user=Depends(require_authenticated_user),
 ) -> dict:
     """
     Save clean identifiers into a project.

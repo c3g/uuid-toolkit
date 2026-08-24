@@ -44,6 +44,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
+from core.auth_dependencies import require_admin
 from db.database import get_db_session
 from db.database_management import (
     clear_all_table_data,
@@ -61,6 +62,7 @@ from db.database_management import (
 router = APIRouter(
     prefix="/database-management",
     tags=["database management"],
+    dependencies=[Depends(require_admin)],
 )
 
 

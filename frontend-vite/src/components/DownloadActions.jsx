@@ -1,6 +1,7 @@
 function DownloadActions({ 
     downloadAllRows, 
     downloadCleanRows,
+    downloadIncorrectRows,
     saveCleanIdentifiers,
     saveLoading,
     saveCompleted,
@@ -25,6 +26,13 @@ function DownloadActions({
         <div className="download-actions">
             <button type="button" onClick={downloadAllRows}>
                 Download All Rows
+            </button>
+
+            <button
+                type="button"
+                onClick={downloadIncorrectRows}
+            >
+                Download Incorrect Rows
             </button>
 
             <button type="button" onClick={downloadCleanRows}>

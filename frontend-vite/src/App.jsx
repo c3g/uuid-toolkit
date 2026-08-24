@@ -7,8 +7,12 @@ import {
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
 import ToolkitPage from "./pages/ToolkitPage.jsx";
 import DatabaseManagementPage from "./pages/DatabaseManagementPage.jsx";
+import UserManagementPage from "./pages/UserManagementPage.jsx";
+import { useAuth } from "./context/useAuth.js";
 
 function App() {
+  const { isAdmin } = useAuth();
+
   return (
     <Routes>
       <Route element={<DashboardLayout />}>
@@ -30,7 +34,22 @@ function App() {
         <Route
           path="database"
           element={
-            <DatabaseManagementPage />
+            isAdmin ? (
+              <DatabaseManagementPage />
+            ) : (
+              <Navigate to="/toolkit" replace />
+            )
+          }
+        />
+
+        <Route
+          path="users"
+          element={
+            isAdmin ? (
+              <UserManagementPage />
+            ) : (
+              <Navigate to="/toolkit" replace />
+            )
           }
         />
 

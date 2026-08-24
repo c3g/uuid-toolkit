@@ -95,7 +95,7 @@ Result Grid Panels
   margin-top: 16px;
 }
 .validation-grid{
-  grid-template-columns:repeat(5,1fr);
+  grid-template-columns:repeat(4,1fr);
 }
 .generation-grid{
   grid-template-columns:repeat(4,1fr);
@@ -114,6 +114,8 @@ Shared Summary Card Layout for result summary
   display:flex;
   align-items: center;
   gap:14px;
+
+  position:relative;
 }
 .summary-icon{
   width: 42px;
@@ -142,6 +144,41 @@ Shared Summary Card Layout for result summary
   font-size:24px;
   font-weight: 800;
   color: var(--text-main);
+}
+
+/*Summary card tooltip styling*/
+.summary-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+
+  width: 260px;
+  padding: 10px 12px;
+
+  background: #1f2937;
+  color: white;
+
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+
+  border-radius: 8px;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition: opacity 0.15s ease;
+
+  z-index: 20;
+}
+
+.summary-card:hover .summary-tooltip,
+.summary-card:focus .summary-tooltip,
+.summary-card:focus-within .summary-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Individual summary card colors */
@@ -174,6 +211,10 @@ Shared Summary Card Layout for result summary
 .invalid-rows {
   background: #FFF1F2;
   border: 2px solid #FECDD3;
+}
+.format-errors {
+  background: #FFF7ED;
+  border: 2px solid #FDBA74;
 }
 
 .duplicated-rows {
