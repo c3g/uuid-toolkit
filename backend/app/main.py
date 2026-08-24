@@ -156,100 +156,118 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
 
 #Generic fallback
-if FRONTEND_DIST_DIR.is_dir():
-    frontend_assets_dir = FRONTEND_DIST_DIR / "assets"
+frontend_assets_dir = FRONTEND_DIST_DIR / "assets"
 
-    if frontend_assets_dir.is_dir():
-        app.mount(
-            "/assets",
-            StaticFiles(directory=frontend_assets_dir),
-            name="frontend-assets",
+if frontend_assets_dir.is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=frontend_assets_dir),
+        name="frontend-assets",
+    )
+
+
+def _serve_index_html() -> FileResponse:
+    """
+    Return the built React app, or a 404 when it hasn't been built.
+
+    Kept separate from the login gate below so a missing frontend build
+    (for example, the backend-only CI job, which never runs the frontend
+    build) never silently skips authentication -- only this last step is
+    conditional on the build actually existing.
+    """
+    index_path = FRONTEND_DIST_DIR / "index.html"
+
+    if not index_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Frontend build not found.",
         )
 
-    async def _resolve_page_session(
-        request: Request,
-        session: Session,
+    return FileResponse(index_path)
+
+
+async def _resolve_page_session(
+    request: Request,
+    session: Session,
+):
+    """
+    Return the signed-in user for a page request, or a
+    ``RedirectResponse`` to CILogon when there is no valid session.
+
+    This is the gate-before-content check: called by every page route
+    below (never by ``/api/health`` or ``/api/ready``, and never by the
+    ``/assets`` static mount) before any app content is returned.
+    """
+    if not AUTH_REQUIRED:
+        return None
+
+    user_id = request.session.get("user_id")
+
+    if user_id is not None:
+        user = get_user_by_id(session, user_id=user_id)
+
+        if user is not None:
+            return user
+
+        # The session pointed at a user who no longer exists, e.g. an
+        # admin removed their enrollment while they were logged in.
+        request.session.clear()
+
+    return await redirect_to_cilogon(request)
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend_root(
+    request: Request,
+    session: Session = Depends(get_db_session),
+):
+    # CILogon's registered redirect URI is this root path, so the OIDC
+    # callback (code + state) is handled here rather than on a
+    # dedicated /auth/callback route.
+    if (
+        request.query_params.get("code")
+        and request.query_params.get("state")
     ):
-        """
-        Return the signed-in user for a page request, or a
-        ``RedirectResponse`` to CILogon when there is no valid session.
+        try:
+            user = await process_callback(request, session)
 
-        This is the gate-before-content check: called by every page route
-        below (never by ``/api/health`` or ``/api/ready``, and never by the
-        ``/assets`` static mount) before any app content is returned.
-        """
-        if not AUTH_REQUIRED:
-            return None
-
-        user_id = request.session.get("user_id")
-
-        if user_id is not None:
-            user = get_user_by_id(session, user_id=user_id)
-
-            if user is not None:
-                return user
-
-            # The session pointed at a user who no longer exists, e.g. an
-            # admin removed their enrollment while they were logged in.
-            request.session.clear()
-
-        return await redirect_to_cilogon(request)
-
-    @app.get("/", include_in_schema=False)
-    async def serve_frontend_root(
-        request: Request,
-        session: Session = Depends(get_db_session),
-    ):
-        # CILogon's registered redirect URI is this root path, so the OIDC
-        # callback (code + state) is handled here rather than on a
-        # dedicated /auth/callback route.
-        if (
-            request.query_params.get("code")
-            and request.query_params.get("state")
-        ):
-            try:
-                user = await process_callback(request, session)
-
-            except UnenrolledUserError as error:
-                return PlainTextResponse(
-                    f"'{error.email}' authenticated successfully but "
-                    "has not been enrolled to use this application. "
-                    "Contact an administrator to request access.",
-                    status_code=403,
-                )
-
-            request.session["user_id"] = user.id
-
-            # Redirect to a clean "/" so the authorization code does not
-            # stay visible in the address bar or get replayed on refresh.
-            return RedirectResponse("/", status_code=302)
-
-        result = await _resolve_page_session(request, session)
-
-        if isinstance(result, RedirectResponse):
-            return result
-
-        return FileResponse(
-            FRONTEND_DIST_DIR / "index.html"
-        )
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_frontend(
-        full_path: str,
-        request: Request,
-        session: Session = Depends(get_db_session),
-    ):
-        if full_path == "api" or full_path.startswith("api/"):
-            raise HTTPException(
-                status_code=404,
-                detail="API endpoint not found.",
+        except UnenrolledUserError as error:
+            return PlainTextResponse(
+                f"'{error.email}' authenticated successfully but "
+                "has not been enrolled to use this application. "
+                "Contact an administrator to request access.",
+                status_code=403,
             )
 
-        result = await _resolve_page_session(request, session)
+        request.session["user_id"] = user.id
 
-        if isinstance(result, RedirectResponse):
-            return result
+        # Redirect to a clean "/" so the authorization code does not
+        # stay visible in the address bar or get replayed on refresh.
+        return RedirectResponse("/", status_code=302)
 
-        return FileResponse(
-            FRONTEND_DIST_DIR / "index.html"
+    result = await _resolve_page_session(request, session)
+
+    if isinstance(result, RedirectResponse):
+        return result
+
+    return _serve_index_html()
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend(
+    full_path: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+):
+    if full_path == "api" or full_path.startswith("api/"):
+        raise HTTPException(
+            status_code=404,
+            detail="API endpoint not found.",
         )
+
+    result = await _resolve_page_session(request, session)
+
+    if isinstance(result, RedirectResponse):
+        return result
+
+    return _serve_index_html()
