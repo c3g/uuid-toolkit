@@ -29,10 +29,14 @@ be stored. In that case, update this file and create a database migration before
 deploying the change.
 """
 
+from datetime import datetime
+
 from sqlalchemy import (
+    DateTime,
     ForeignKey,
     String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -146,4 +150,78 @@ class IdentifierRegistry(Base):
 
     project: Mapped["Project"] = relationship(
         back_populates="identifiers",
+    )
+
+
+class User(Base):
+    """
+    Store one person enrolled to use the application.
+
+    Logging in through CILogon proves who someone is, but it does not by
+    itself grant access. A row must already exist here before that identity
+    is allowed into the app. An admin creates the row using the person's
+    email; ``cilogon_sub`` starts empty and is filled in automatically the
+    first time that person logs in successfully, after which lookups use
+    ``cilogon_sub`` as the authoritative identity key.
+
+    ``role`` is a plain string rather than a database enum so a future
+    finer-grained groups feature is not blocked by a schema change.
+
+    How this file connects to the project
+    -------------------------------------
+    - ``db/user_repository.py`` contains the queries and writes for this
+      table.
+    - ``app/core/oidc.py`` looks up and binds ``cilogon_sub`` during the
+      login callback.
+    - ``app/core/auth_dependencies.py`` loads the current user on every
+      protected request using ``id``.
+    - ``app/api/users.py`` exposes admin-only enrollment management.
+    - ``scripts/seed_admin.py`` creates the first admin account directly.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+    )
+
+    cilogon_sub: Mapped[str | None] = mapped_column(
+        String,
+        unique=True,
+        nullable=True,
+    )
+
+    email: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        nullable=False,
+    )
+
+    name: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    role: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="member",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )

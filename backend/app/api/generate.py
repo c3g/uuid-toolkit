@@ -64,6 +64,7 @@ from api.utils import (
     parse_config_json,
     validate_and_normalize_config,
 )
+from core.auth_dependencies import require_authenticated_user
 from core.pipeline import run_generation_pipeline
 from db.comparison import (
     compare_pipeline_result_to_database,
@@ -72,7 +73,9 @@ from db.comparison import (
 from db.database import get_db_session
 
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.post("/generate")

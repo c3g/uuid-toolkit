@@ -32,6 +32,7 @@ API config validation, frontend strategy selector, config controls, and tests.
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from core.auth_dependencies import require_authenticated_user
 from db.database import get_db_session
 from db.project_repository import list_projects
 
@@ -39,6 +40,7 @@ from db.project_repository import list_projects
 router = APIRouter(
     prefix="/projects",
     tags=["projects"],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 

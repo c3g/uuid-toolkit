@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import create_engine
@@ -28,6 +29,32 @@ _TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 # imports use it instead of the normal development DATABASE_URL.
 if _TEST_DATABASE_URL:
     os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
+
+# main.py fails fast if SESSION_SECRET is unset. CI never sets a real one,
+# so `from main import app` would crash at collection time without this.
+os.environ.setdefault(
+    "SESSION_SECRET",
+    "test-session-secret-not-for-production",
+)
+
+
+# ------------------------------------------------------------------
+# Fake identities used to override the auth dependencies in tests
+# ------------------------------------------------------------------
+
+FAKE_ADMIN_USER = SimpleNamespace(
+    id=1,
+    email="admin@test.example",
+    name="Test Admin",
+    role="admin",
+)
+
+FAKE_MEMBER_USER = SimpleNamespace(
+    id=2,
+    email="member@test.example",
+    name="Test Member",
+    role="member",
+)
 
 
 @pytest.fixture(scope="session")
@@ -90,6 +117,10 @@ def db_session(test_engine):
 def client(test_database_url, test_engine):
     from fastapi.testclient import TestClient
 
+    from core.auth_dependencies import (
+        require_admin,
+        require_authenticated_user,
+    )
     from db.database import get_db_session
     from db.models import Base
     from main import app
@@ -115,9 +146,73 @@ def client(test_database_url, test_engine):
         override_get_db_session
     )
 
+    # Every route now requires authentication. Existing tests were written
+    # before the login gate existed, so `client` defaults to an
+    # authenticated admin identity to keep that behavior unchanged.
+    # `anonymous_client`/`member_client` below remove or narrow this.
+    app.dependency_overrides[require_authenticated_user] = (
+        lambda: FAKE_ADMIN_USER
+    )
+    app.dependency_overrides[require_admin] = (
+        lambda: FAKE_ADMIN_USER
+    )
+
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=test_engine)
+
+
+@pytest.fixture()
+def admin_client(client):
+    """
+    Alias for ``client`` for readability in auth-specific tests, since
+    ``client`` already defaults to an authenticated admin identity.
+    """
+    yield client
+
+
+@pytest.fixture()
+def member_client(client):
+    """
+    Same client, but authenticated as a member instead of an admin.
+
+    Only ``require_authenticated_user`` is overridden here.
+    ``require_admin`` is deliberately left un-overridden so its real body
+    runs: it resolves the (overridden) member identity and raises a real
+    403, exercising actual authorization logic instead of stubbing the
+    outcome.
+    """
+    from core.auth_dependencies import (
+        require_admin,
+        require_authenticated_user,
+    )
+    from main import app
+
+    app.dependency_overrides[require_authenticated_user] = (
+        lambda: FAKE_MEMBER_USER
+    )
+    app.dependency_overrides.pop(require_admin, None)
+
+    yield client
+
+
+@pytest.fixture()
+def anonymous_client(client):
+    """
+    Same client, but with no authentication override at all -- the real,
+    session-based ``require_authenticated_user``/``require_admin`` run,
+    which reject the request since no session cookie is present.
+    """
+    from core.auth_dependencies import (
+        require_admin,
+        require_authenticated_user,
+    )
+    from main import app
+
+    app.dependency_overrides.pop(require_authenticated_user, None)
+    app.dependency_overrides.pop(require_admin, None)
+
+    yield client

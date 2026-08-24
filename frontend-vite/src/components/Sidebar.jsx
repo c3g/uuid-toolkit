@@ -1,9 +1,12 @@
 import { NavLink } from "react-router-dom";
 
 import favicon from "../assets/c3g_favicon.png";
+import { useAuth } from "../context/useAuth.js";
 
 
 function Sidebar() {
+  const { isAdmin } = useAuth();
+
   function getNavLinkClass({ isActive }) {
     return isActive
       ? "sidebar-nav-link active"
@@ -53,12 +56,23 @@ function Sidebar() {
             Validate / Generate
           </NavLink>
 
-          <NavLink
-            to="/database"
-            className={getNavLinkClass}
-          >
-            Database Management
-          </NavLink>
+          {isAdmin && (
+            <NavLink
+              to="/database"
+              className={getNavLinkClass}
+            >
+              Database Management
+            </NavLink>
+          )}
+
+          {isAdmin && (
+            <NavLink
+              to="/users"
+              className={getNavLinkClass}
+            >
+              User Management
+            </NavLink>
+          )}
 
           <a
             className="sidebar-nav-link"
