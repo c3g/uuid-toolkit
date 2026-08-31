@@ -174,3 +174,15 @@ Side bar styling
   font-weight:500;
 }
 
+.developer-credit-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(255,255,255,0.3);
+  text-underline-offset: 2px;
+}
+
+.developer-credit-link:hover {
+  color: rgba(255,255,255,0.85);
+  text-decoration-color: rgba(255,255,255,0.6);
+}
+
