@@ -1,24 +1,26 @@
 """
-Repository functions for enrolled application users.
+Repository functions for the app's local mirror of who has access.
 
-This file contains the database queries and writes used to enroll, look up,
-list, and remove the people allowed to use the application. Logging in
-through CILogon proves identity; a row in this table is what actually grants
-access, which is why every function here is careful about how a row is
-found and changed.
+COManage group membership (see ``app/core/comanage_groups.py``) is the
+actual admission decision now, decided fresh on every login. This table no
+longer grants access by itself -- it's a local, queryable record of who
+currently has access and at what role, kept in sync by
+``app/core/oidc.py``'s ``process_callback()`` on every successful login.
+The read-only User Management page displays exactly this table.
 
 How this file connects to the project
 -------------------------------------
 - ``db/models.py`` defines ``User``.
-- ``app/core/oidc.py`` calls ``get_user_by_sub()`` and ``get_user_by_email()``
-  during the login callback, and ``bind_cilogon_sub()`` the first time a
-  pre-enrolled person logs in.
+- ``app/core/oidc.py`` calls ``get_user_by_sub()``/``get_user_by_email()``
+  to find an existing mirror row, ``bind_cilogon_sub()`` on someone's first
+  login, ``create_user()`` to mirror a brand-new COManage-admitted person,
+  and ``sync_role_from_comanage()`` to correct a mirrored role that no
+  longer matches what COManage just reported.
 - ``app/core/auth_dependencies.py`` calls ``get_user_by_id()`` on every
   protected request.
-- ``app/api/users.py`` uses the create/list/update/delete functions for the
-  admin-only enrollment endpoints.
-- ``scripts/seed_admin.py`` uses ``get_user_by_email()`` and
-  ``create_user()``/``update_user_role()`` to create the first admin account.
+- ``app/api/users.py`` uses the list/update/delete functions for the
+  admin-only (now display/cleanup-only, since COManage governs real
+  access) user endpoints.
 - ``db/database.py`` provides the SQLAlchemy session.
 
 Adding a new role
@@ -207,6 +209,34 @@ def bind_cilogon_sub(
 
     session.commit()
     session.refresh(user)
+
+    return user
+
+
+def sync_role_from_comanage(
+    session: Session,
+    *,
+    user_id: int,
+    role: str,
+) -> User:
+    """
+    Overwrite an enrolled user's role to match what COManage just resolved.
+
+    Unlike ``update_user_role()``, this has no last-admin guard: COManage is
+    now the authoritative source for role, so a demotion it reports (even
+    of the only admin on record here) must take effect, not be blocked by
+    an app-side safety check meant for manual changes through the app's own
+    (now display-only) admin UI. A no-op when the role already matches.
+    """
+    user = session.get(User, user_id)
+
+    if user is None:
+        raise ValueError(f"User {user_id} was not found.")
+
+    if user.role != role:
+        user.role = role
+        session.commit()
+        session.refresh(user)
 
     return user
 
