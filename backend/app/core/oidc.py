@@ -5,18 +5,28 @@ This module builds the Authlib OIDC client and implements the two moving
 parts of the login flow: sending someone to CILogon, and handling the
 identity CILogon hands back afterward.
 
-Logging in through CILogon only proves who someone is. It does not by
-itself grant access to the application -- a matching row must already exist
-in ``db/user_repository.py`` (created by an admin, or by ``scripts/seed_admin.py``
-for the very first admin). ``process_callback()`` is where that admission
-check happens.
+Logging in through CILogon only proves who someone is. Access itself is
+decided by COManage group membership, released as the ``groups`` claim on
+the ID token and matched in ``core/comanage_groups.py`` -- not by anything
+in the app's own database. ``process_callback()`` is where that admission
+check happens: no recognized role in ``groups`` means no access, full stop,
+even for someone who already has a row in ``db/user_repository.py`` from
+before this model.
+
+The ``users`` table still exists, but only as a local, queryable mirror of
+who currently has access (what the read-only User Management page shows)
+-- kept in sync on every login, not consulted to grant access on its own.
+``scripts/seed_admin.py`` predates this model and is no longer how anyone
+gets in.
 
 How this file connects to the project
 --------------------------------------
 - ``app/main.py`` calls ``redirect_to_cilogon()`` when an unauthenticated
   visitor is not mid-callback, and ``process_callback()`` when a request to
   the root path carries ``code``/``state`` query parameters.
-- ``db/user_repository.py`` supplies the enrollment lookups used here.
+- ``core/comanage_groups.py`` decides the role from the ``groups`` claim.
+- ``db/user_repository.py`` supplies the mirror-table reads/writes used
+  here.
 - Requires Starlette's ``SessionMiddleware`` to already be installed on the
   app, since Authlib stores the OIDC ``state``/nonce in ``request.session``
   during the redirect and reads it back during the callback.
@@ -29,6 +39,9 @@ than at import time. Tests and CI import ``main.py`` without any of these
 set, and an import-time check would break that.
 """
 
+import base64
+import json
+import logging
 import os
 
 from authlib.integrations.starlette_client import OAuth
@@ -36,10 +49,13 @@ from fastapi import Request
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
+from core.comanage_groups import resolve_role_from_groups
 from db.user_repository import (
     bind_cilogon_sub,
+    create_user,
     get_user_by_email,
     get_user_by_sub,
+    sync_role_from_comanage,
     touch_last_login,
 )
 from db.models import User
@@ -60,6 +76,8 @@ class UnenrolledUserError(Exception):
             f"'{email}' authenticated but is not enrolled."
         )
 
+
+logger = logging.getLogger(__name__)
 
 _oauth_client = None
 
@@ -151,25 +169,67 @@ async def process_callback(
     Handle the redirect CILogon sends back after a login attempt.
 
     Exchanges the authorization code, validates the ID token (signature,
-    issuer, audience -- handled by Authlib), and looks up the authenticated
-    identity in the app's own enrolled-users table.
+    issuer, audience -- handled by Authlib), and decides access purely from
+    the ID token's ``groups`` claim (see ``core/comanage_groups.py``): no
+    recognized role for this app's COU means no access, regardless of any
+    pre-existing row in the app's own ``users`` table. When a role is
+    resolved, that table is upserted to mirror it -- creating the row on
+    someone's first login, or correcting its ``role`` if COManage's answer
+    has changed since their last one (e.g. an admin demoted to member, or
+    vice versa).
 
     Returns
     -------
     User
-        The enrolled user record, with ``cilogon_sub`` bound if this was
-        their first successful login.
+        The user record, kept in sync with the role COManage just
+        reported -- newly created on a first login, or updated in place.
 
     Raises
     ------
     UnenrolledUserError
-        Raised when the authenticated identity has no matching enrolled
-        user, by ``sub`` or by ``email``.
+        Raised when the ``groups`` claim carries no recognized role for
+        this app's COU.
     """
     client = get_oauth_client()
     token = await client.authorize_access_token(request)
 
     claims = token.get("userinfo") or {}
+
+    # TEMPORARY -- checking whether the groups claim now shows up after
+    # Paul enabled attribute release. Remove once confirmed; do not ship
+    # this logging permanently -- it prints full identity claims.
+    logger.warning("TEMP DEBUG -- ID token claims: %s", claims)
+
+    # TEMPORARY -- manually decode the raw JWT payload ourselves (just
+    # base64 + stdlib json, no Authlib involved) to rule out Authlib
+    # filtering/stripping a claim during its own parsing. This is the raw
+    # bytes CILogon sent, completely independent of our session/cookie
+    # handling and of Authlib's userinfo parsing.
+    id_token_raw = token.get("id_token")
+    if id_token_raw:
+        try:
+            payload_segment = id_token_raw.split(".")[1]
+            padded = payload_segment + "=" * (-len(payload_segment) % 4)
+            raw_payload = json.loads(base64.urlsafe_b64decode(padded))
+            logger.warning(
+                "TEMP DEBUG -- raw JWT payload, manually decoded (no Authlib): %s",
+                raw_payload,
+            )
+        except Exception:
+            logger.exception(
+                "TEMP DEBUG -- manual JWT decode failed"
+            )
+
+    try:
+        userinfo_response = await client.userinfo(token=token)
+        logger.warning(
+            "TEMP DEBUG -- /userinfo endpoint response: %s",
+            userinfo_response,
+        )
+    except Exception:
+        logger.exception(
+            "TEMP DEBUG -- calling the /userinfo endpoint failed"
+        )
 
     cilogon_sub = claims.get("sub")
     email = claims.get("email")
@@ -180,6 +240,16 @@ async def process_callback(
             "CILogon response did not include the expected "
             "'sub' and 'email' claims."
         )
+
+    # COManage group membership is the sole admission decision. The
+    # app's own `users` table no longer grants access on its own -- it is
+    # kept in sync here purely as a local, queryable mirror of who
+    # currently has access (what the read-only User Management page
+    # displays), not as a second, independent enrollment path.
+    role = resolve_role_from_groups(claims.get("groups"))
+
+    if role is None:
+        raise UnenrolledUserError(email)
 
     user = get_user_by_sub(
         session,
@@ -200,7 +270,24 @@ async def process_callback(
             )
 
     if user is None:
-        raise UnenrolledUserError(email)
+        user = create_user(
+            session,
+            email=email,
+            role=role,
+            name=name,
+            cilogon_sub=cilogon_sub,
+        )
+        logger.info(
+            "Auto-enrolled '%s' as %s via COManage group membership.",
+            email,
+            role,
+        )
+    else:
+        user = sync_role_from_comanage(
+            session,
+            user_id=user.id,
+            role=role,
+        )
 
     touch_last_login(
         session,

@@ -106,7 +106,15 @@ function Sidebar() {
         </div>
 
         <p className="developer-credit">
-          Developed by Johnny Weng Lin
+          Developed by{" "}
+          <a
+            className="developer-credit-link"
+            href="https://www.linkedin.com/in/johnny-weng-lin/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Johnny Weng Lin
+          </a>
         </p>
       </div>
     </aside>
